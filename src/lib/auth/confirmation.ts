@@ -1,4 +1,5 @@
 import { assertFlowSigningSecret, issueFlowTicket, type FlowType } from "./flow";
+import type { AuthFlowStore } from "./auth-store";
 
 type VerifiedUser = { id: string };
 type VerifiedSession = { access_token: string };
@@ -14,14 +15,18 @@ export interface ConfirmationGateway {
 /** Called only by the POST route; GET never calls this or Supabase Auth. */
 export async function verifyConfirmation(
   gateway: ConfirmationGateway,
+  store: AuthFlowStore,
   type: FlowType,
   token: string,
 ): Promise<string | null> {
   // A missing secret must not consume a valid one-time invitation or recovery link.
   assertFlowSigningSecret();
+  if (!await store.ready()) throw new Error("Auth flow store unavailable.");
   const verified = await gateway.verifyOtp({ token_hash: token, type });
   if (verified.error || !verified.data.user || !verified.data.session) return null;
   const current = await gateway.getUser();
   if (current.error || current.data.user?.id !== verified.data.user.id) return null;
-  return issueFlowTicket(type, verified.data.user.id);
+  const ticket = issueFlowTicket(type, verified.data.user.id);
+  await store.register(ticket, verified.data.user.id, type);
+  return ticket;
 }

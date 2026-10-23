@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint src scripts eslint.config.mjs next.config.ts postcss.config.mjs --max-warnings=0",
     "typecheck": "next typegen && tsc --noEmit",
-    "test:auth": "tsx --test src/lib/auth/core.test.ts src/lib/auth/flow.test.ts src/lib/auth/confirmation.test.ts src/lib/auth/password-operation.test.ts src/lib/auth/recovery-availability.test.ts src/app/auth/confirm/page.test.tsx",
+    "test:auth": "tsx --test src/lib/auth/core.test.ts src/lib/auth/flow.test.ts src/lib/auth/confirmation.test.ts src/lib/auth/password-operation.test.ts src/lib/auth/recovery-operation.test.ts src/lib/auth/recovery-availability.test.ts src/app/auth/confirm/page.test.tsx",
+    "test:db:concurrency": "node scripts/test-auth-flow-concurrency.mjs",
     "supabase:check": "node --env-file=.env.local scripts/check-supabase-connection.mjs"
   },
   "engines": {

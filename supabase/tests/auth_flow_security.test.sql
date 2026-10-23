@@ -1,0 +1,52 @@
+-- Real LOCAL PostgreSQL tests. Fixtures roll back; no hosted data is used.
+begin;
+create extension if not exists pgtap with schema extensions;
+select extensions.plan(32);
+
+select extensions.ok(to_regclass('app_private.auth_flow_tickets') is not null, 'private ticket table exists');
+select extensions.ok(to_regclass('app_private.auth_recovery_buckets') is not null, 'private quota table exists');
+select extensions.ok((select relrowsecurity from pg_catalog.pg_class where oid = 'app_private.auth_flow_tickets'::regclass), 'ticket RLS enabled');
+select extensions.ok((select relrowsecurity from pg_catalog.pg_class where oid = 'app_private.auth_recovery_buckets'::regclass), 'quota RLS enabled');
+select extensions.ok(not pg_catalog.has_table_privilege('anon', 'app_private.auth_flow_tickets', 'SELECT'), 'anon cannot read ticket hashes');
+select extensions.ok(not pg_catalog.has_table_privilege('authenticated', 'app_private.auth_flow_tickets', 'SELECT'), 'staff cannot read ticket hashes');
+select extensions.ok(not pg_catalog.has_table_privilege('service_role', 'app_private.auth_flow_tickets', 'SELECT'), 'service role has no direct ticket-table grant');
+select extensions.ok(not pg_catalog.has_table_privilege('anon', 'app_private.auth_recovery_buckets', 'SELECT'), 'anon cannot read quota hashes');
+select extensions.ok(not pg_catalog.has_table_privilege('authenticated', 'app_private.auth_recovery_buckets', 'INSERT'), 'staff cannot write quotas');
+select extensions.ok(not pg_catalog.has_function_privilege('anon', 'public.redeem_auth_flow_ticket(text,uuid,text)', 'EXECUTE'), 'anon cannot redeem');
+select extensions.ok(not pg_catalog.has_function_privilege('authenticated', 'public.redeem_auth_flow_ticket(text,uuid,text)', 'EXECUTE'), 'staff cannot redeem');
+select extensions.ok(pg_catalog.has_function_privilege('service_role', 'public.redeem_auth_flow_ticket(text,uuid,text)', 'EXECUTE'), 'server credential can redeem');
+select extensions.ok(not pg_catalog.has_function_privilege('anon', 'public.consume_recovery_budget(text,text)', 'EXECUTE'), 'anon cannot debit quota');
+select extensions.ok(not pg_catalog.has_function_privilege('authenticated', 'public.consume_recovery_budget(text,text)', 'EXECUTE'), 'staff cannot debit quota');
+select extensions.ok(pg_catalog.has_function_privilege('service_role', 'public.consume_recovery_budget(text,text)', 'EXECUTE'), 'server credential can debit quota');
+
+insert into auth.users (id) values ('00000000-0000-4000-8000-000000000099');
+set local role service_role;
+select public.register_auth_flow_ticket(pg_catalog.repeat('aa',32), '00000000-0000-4000-8000-000000000099', 'invite', pg_catalog.now() + interval '5 minutes');
+reset role;
+select extensions.is((select count(*) from app_private.auth_flow_tickets where id_hash = pg_catalog.decode(pg_catalog.repeat('aa',32),'hex')), 1::bigint, 'ticket registration persists a digest');
+select extensions.is((select pg_catalog.octet_length(id_hash) from app_private.auth_flow_tickets where id_hash = pg_catalog.decode(pg_catalog.repeat('aa',32),'hex')), 32, 'ticket identifier hash is 32 bytes');
+set local role service_role;
+select extensions.is(public.redeem_auth_flow_ticket(pg_catalog.repeat('aa',32), '00000000-0000-4000-8000-000000000098', 'invite'), false, 'wrong user denied');
+select extensions.is(public.redeem_auth_flow_ticket(pg_catalog.repeat('aa',32), '00000000-0000-4000-8000-000000000099', 'recovery'), false, 'wrong flow denied');
+select extensions.is(public.redeem_auth_flow_ticket(pg_catalog.repeat('aa',32), '00000000-0000-4000-8000-000000000099', 'invite'), true, 'first redemption succeeds');
+select extensions.is(public.redeem_auth_flow_ticket(pg_catalog.repeat('aa',32), '00000000-0000-4000-8000-000000000099', 'invite'), false, 'replay denied');
+select extensions.is(public.redeem_auth_flow_ticket(pg_catalog.repeat('ab',32), '00000000-0000-4000-8000-000000000099', 'invite'), false, 'modified hash denied');
+reset role;
+insert into app_private.auth_flow_tickets (id_hash,user_id,flow_type,expires_at)
+values (pg_catalog.decode(pg_catalog.repeat('dd',32),'hex'), '00000000-0000-4000-8000-000000000099', 'recovery', pg_catalog.now() - interval '1 second');
+set local role service_role;
+select extensions.is(public.redeem_auth_flow_ticket(pg_catalog.repeat('dd',32), '00000000-0000-4000-8000-000000000099', 'recovery'), false, 'expired ticket denied');
+select extensions.is(public.consume_recovery_budget(pg_catalog.repeat('cc',32), pg_catalog.repeat('bb',32)), true, 'first recovery request allowed');
+select extensions.is(public.consume_recovery_budget(pg_catalog.repeat('cc',32), pg_catalog.repeat('bb',32)), true, 'second recovery request allowed');
+select extensions.is(public.consume_recovery_budget(pg_catalog.repeat('cc',32), pg_catalog.repeat('bb',32)), true, 'third recovery request allowed');
+select extensions.is(public.consume_recovery_budget(pg_catalog.repeat('cc',32), pg_catalog.repeat('bb',32)), false, 'fourth per-email request denied');
+select extensions.is(public.consume_recovery_budget(pg_catalog.repeat('ee',32), pg_catalog.repeat('bb',32)), true, 'other email has independent quota');
+reset role;
+select extensions.is((select attempts from app_private.auth_recovery_buckets where scope='global' and key_hash = pg_catalog.decode(pg_catalog.repeat('bb',32),'hex')), 4, 'global quota counts only accepted requests');
+set local role anon;
+select extensions.throws_ok($$select public.redeem_auth_flow_ticket(repeat('aa',32), '00000000-0000-4000-8000-000000000099', 'invite')$$, '42501', null, 'anon RPC redemption is rejected');
+select extensions.throws_ok($$select public.consume_recovery_budget(repeat('cc',32), repeat('bb',32))$$, '42501', null, 'anon recovery limiter RPC is rejected');
+reset role;
+set local role authenticated;
+select extensions.throws_ok($$select public.register_auth_flow_ticket(repeat('aa',32), '00000000-0000-4000-8000-000000000099', 'invite', now() + interval '5 minutes')$$, '42501', null, 'ordinary Auth user cannot register tickets');
+rollback;

@@ -2,6 +2,7 @@ import { type NextRequest } from "next/server";
 import { createRouteClient } from "@/lib/supabase/route";
 import { confirmationType, flowCookieOptions } from "@/lib/auth/flow";
 import { verifyConfirmation } from "@/lib/auth/confirmation";
+import { createAuthFlowStore } from "@/lib/auth/supabase-auth-store";
 import { authRedirect, validFormRequest } from "@/lib/auth/http";
 
 export async function POST(request: NextRequest) {
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest) {
   const { client, apply } = createRouteClient(request);
   let ticket: string | null;
   try {
-    ticket = await verifyConfirmation(client.auth, type, token);
+    ticket = await verifyConfirmation(client.auth, createAuthFlowStore(), type, token);
   } catch {
     // Do not disclose configuration, token, or provider details to the visitor.
     return apply(authRedirect(request, "/auth/error"));
