@@ -34,15 +34,23 @@ limits, and return generic credential errors.
 
 ## Invitations, recovery, and expiration
 
-An eventual invitation callback should accept a one-time Auth `code`, exchange
-it server-side with `exchangeCodeForSession`, and use only an allowlisted,
-same-origin return path. `safeAuthReturnPath()` is provided for that final step.
-The callback must avoid logging codes, tokens, cookies, and recovery links.
-After exchange, it must still call the database-backed staff check. A future
-recovery flow should request a recovery email with a fixed allowed redirect,
-then exchange the one-time code and permit a password update only in the
-verified recovery context. Use generic responses to avoid account enumeration
-and apply rate limiting. Neither callback nor recovery endpoint exists yet.
+For current email-delivery readiness and the required non-prefetching
+invitation/recovery routes, see
+[auth-email-delivery-test.md](./auth-email-delivery-test.md). The hosted Site URL
+is still localhost and no callback route is deployed. Do not send a real
+invitation or recovery link until the reviewed flow exists.
+
+An eventual invitation or recovery email callback should use a reviewed
+`token_hash` template and server-side `verifyOtp` with the exact `invite` or
+`recovery` type. Require a user action before token verification so mail-link
+prefetchers cannot consume the one-time token. PKCE flows that actually return
+an Auth `code` may instead use `exchangeCodeForSession`. Use only an allowlisted,
+same-origin return path; `safeAuthReturnPath()` is available for that purpose.
+Do not log codes, tokens, cookies, or recovery links. After exchange, staff
+operations must still perform database-backed authorization. Recovery password
+updates require a fresh verified recovery session. Use generic responses to
+avoid account enumeration and apply rate limiting. The current limited routes
+are documented in [auth-flows.md](./auth-flows.md).
 
 The proxy refreshes expiring tokens. An expired or invalid Auth session cannot
 pass `getUser()`; an inactive profile loses database-backed access on the next

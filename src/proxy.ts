@@ -7,4 +7,4 @@ export async function proxy(request: NextRequest) {
 
 // Internal routes are reserved for a later stage. Extend this when protected
 // routes are added; each route must also check authorization server-side.
-export const config = { matcher: ["/internal/:path*"] };
+export const config = { matcher: ["/internal/:path*", "/auth/:path*"] };

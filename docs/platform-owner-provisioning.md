@@ -22,7 +22,8 @@ separately approve corrections in Dashboard:
 2. **Authentication > URL Configuration:** replace the localhost Site URL with
    the reviewed owned destination for invitation/recovery links. Add only exact
    trusted callback URLs after a secure callback exists. No such website route
-   exists yet; do not send an invite that redirects to an unimplemented page.
+   exists locally after Stage 2D.3, but is not deployed or tested end-to-end;
+   do not send an invite that redirects to an unreachable page.
 3. **Authentication > Email > Templates** and **Authentication > Emails > SMTP
    Settings:** review invite/recovery templates, sender, SMTP provider, quotas,
    and controlled delivery. Do not treat the default mail service as verified.
@@ -139,8 +140,9 @@ one profile with the reviewed UUID and full name, exactly one assignment to
 `platform_owner`, the expected role permission set, and one matching bootstrap
 audit row. Confirm that no other Auth user or team row changed. Do not publish
 the founder's email or Auth ID in logs. Test sign-in only through a separately
-approved secure interface or controlled harness; the current app has no login
-UI or callback. Confirm TOTP enrollment and establish protected recovery codes.
+approved secure interface or controlled harness; the app has limited local
+callback routes but no deployed login UI. Confirm TOTP enrollment and establish
+protected recovery codes.
 
 If invitation fails or is unaccepted, do not run the binding transaction.
 Correct delivery/redirect settings through a separately approved Auth change,

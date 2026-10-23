@@ -24,5 +24,7 @@ export async function updateSession(request: NextRequest) {
 
   await client.auth.getClaims();
   response.headers.set("Cache-Control", "private, no-store");
+  response.headers.set("Referrer-Policy", "no-referrer");
+  response.headers.set("X-Robots-Tag", "noindex, nofollow");
   return response;
 }
