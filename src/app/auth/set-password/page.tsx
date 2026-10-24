@@ -1,12 +1,12 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { readFlowTicket } from "@/lib/auth/flow";
+import { FLOW_COOKIE_NAME, readFlowTicket } from "@/lib/auth/flow";
 
 export default async function SetPasswordPage() {
   const client = await createClient();
   const { data, error } = await client.auth.getUser();
-  const ticket = (await cookies()).get("auth_flow")?.value;
+  const ticket = (await cookies()).get(FLOW_COOKIE_NAME)?.value;
   if (error || !data.user || !readFlowTicket(ticket, "invite", data.user.id)) {
     return <><h1 className="text-2xl font-semibold">Invitation unavailable</h1><p>Open a valid invitation email to set your password.</p><Link href="/auth/error">Help</Link></>;
   }

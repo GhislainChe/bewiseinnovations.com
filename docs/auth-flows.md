@@ -1,5 +1,63 @@
 # Stage 2D.5 invitation and recovery security
 
+For the Stage 2D.10 manual credential setup, final localhost Dashboard templates,
+controlled test/cleanup procedure and outstanding browser-cookie/recovery gates,
+see [hosted authentication configuration](./hosted-auth-configuration.md).
+
+## Stage 2D.11 corrections
+
+Flow cookie creation and deletion now use shared helpers and the same
+`auth_flow` name, host-only domain scope, and `/auth` path. Creation retains
+HttpOnly, SameSite=Lax, ten-minute Max-Age, and Secure on HTTPS (localhost HTTP
+is the local exception). Success, failed password saves and caught errors
+expire the exact cookie with Max-Age=0 and an epoch Expires value. GET never
+deletes or redeems tickets. Validation and wrong-flow errors preserve the ticket
+so a legitimate retry does not consume it; expiry and atomic database redemption
+still determine whether it can be used. The former default `/` deletion did
+not clear the `/auth` cookie in a browser.
+
+Recovery now separates local and hosted testing with server-only configuration:
+
+| Setting | Meaning |
+| --- | --- |
+| `AUTH_RECOVERY_MODE` omitted or `local` | Development against HTTP loopback Supabase only |
+| `AUTH_RECOVERY_MODE=disabled` | No recovery submission |
+| `AUTH_RECOVERY_MODE=hosted-local-test` | Explicitly approved development test against the exact hosted project |
+| `AUTH_RECOVERY_TEST_ORIGIN=http://localhost:3000` | Additional required acknowledgement for hosted testing |
+
+No hosted-testing flag was set in this stage. Both modes require development
+runtime, exact request origin `http://localhost:3000`, matching Host, and no
+conflicting forwarded host/protocol headers. Forwarded headers never select
+the trusted origin. Production and known managed deployment/CI environments
+are denied even when the hosted-testing settings are present. The mode is
+not a production recovery enablement switch. Bind the approved development
+server to `127.0.0.1`; never expose it through a LAN address or tunnel.
+
+Hosted mode requires exactly
+`https://onfxxtvfprjnqsxdmhkp.supabase.co`. The handler validates public
+configuration, the server-only store credential and signing secret, then checks
+the ready RPC and atomically consumes shared quota before requesting mail.
+Missing/invalid configuration, store failure, or exhausted quota sends no mail;
+the eligible submission path retains a generic response independent of account
+existence. The redirect is always `http://localhost:3000/auth/confirm`.
+Dashboard allowlist/template configuration remains a separately approved manual
+prerequisite; the switch does not configure it or authorize sending messages.
+
+Validation for this stage: 37/37 Auth/unit/rendering/header tests, 74/74 local
+pgTAP assertions, local concurrency tests, TypeScript, ESLint and production
+build passed. New tests use real Next.js Set-Cookie output and path-aware cookie
+identity, including an assertion that the old `/` deletion fails to remove
+`/auth`. They are not full browser tests. No browser automation dependency is
+installed, and no invitation/recovery emails were requested for this stage.
+The local Auth/Mailpit harness gained exact deletion-header assertions for its
+next separately approved run; its historical Stage 2D.6 result is unchanged.
+
+On 24 October 2026, Stage 2D.9B deployed and verified the hosted private security
+tables and four restricted RPCs. See
+[the deployment result](./hosted-auth-security-deployment-result.md). The web
+application is still not deployed, and hosted credential/email configuration
+and real hosted invitation/recovery testing remain pending.
+
 These limited routes exist locally and are **not deployed**. No founder account,
 email, profile, or role was created. Public signup remains disabled.
 
@@ -38,10 +96,11 @@ GET pages never redeem tickets.
 
 `/auth/forgot-password` requests recovery mail using the fixed local redirect
 `http://localhost:3000/auth/confirm` and gives the same response whether or not
-the address exists. This POST is **disabled in production**, on non-loopback app
-hosts, and whenever the configured Supabase URL is not a loopback HTTP URL. An
-accidental local run against the hosted project therefore cannot send recovery
-mail. The new PostgreSQL limiter atomically allows three requests per
+the address exists. This POST is **disabled in production** and requires the
+exact localhost app origin. Hosted URLs are denied by default; only the explicit
+Stage 2D.11 hosted-local-test gate permits the exact approved project during
+development. An accidental local run against hosted Supabase cannot send
+recovery mail without both server-only testing settings. The PostgreSQL limiter atomically allows three requests per
 normalized email and thirty overall per fixed hour. Only HMAC-SHA256 bucket
 keys are stored, not raw email addresses. A transaction-scoped advisory lock
 serializes concurrent requests across instances. The current global cap fits
@@ -81,7 +140,7 @@ For **Invite User**, use this action-link target:
 For **Reset Password**, use:
 
 ```text
-{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery
+{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery
 ```
 
 Review the final rendered links against the [Supabase template guidance](https://supabase.com/docs/guides/auth/auth-email-templates)
@@ -90,7 +149,10 @@ before saving. Keep **Authentication > URL Configuration > Site URL** at
 `http://localhost:3000/auth/confirm` to **Additional Redirect URLs** before
 testing recovery. Do not add wildcards or the production domain until the
 application is actually deployed there. These Dashboard changes have not been
-made by this stage. Custom SMTP delivery remains unverified.
+made by this stage. Custom SMTP delivery remains unverified. The local Mailpit
+recovery fixture still uses `RedirectTo` with the application's explicit exact
+confirmation URL; the proposed hosted template above uses the fixed SiteURL
+path so Dashboard-initiated messages do not depend on `RedirectTo` being supplied.
 
 ## Local Auth and Mailpit integration test (Stage 2D.6)
 
@@ -134,9 +196,9 @@ The end-to-end harness does not yet simulate Auth token expiry, browser-level
 cookie storage, forced session expiry, or a production distributed deployment.
 Those protections have unit/database coverage where applicable, but must not
 be confused with completed hosted validation. Production recovery submission
-remains disabled until the local-only security migration is separately
-approved and deployed, a server-only production store credential is configured,
-and hosted integration plus SMTP delivery are verified. Before a real founder
+remains disabled until a server-only production store credential is configured,
+a trusted application origin/enablement gate is reviewed, and hosted integration
+plus SMTP delivery are verified. The security migration is now deployed. Before a real founder
 invitation, review [platform-owner-provisioning.md](./platform-owner-provisioning.md).
 
 For harmless local route checks, run `npm run dev`, visit
@@ -145,6 +207,6 @@ generic invalid-link message. Visit `/auth/forgot-password` to inspect the
 form, but do not submit a real mailbox until the controlled test is approved.
 Run `npm run test:auth`, `npx supabase test db`, `npm run
 test:db:concurrency`, `npm run typecheck`, `npm run lint`, and `npm run build`
-for automated validation. The public recovery POST remains disabled until the
-new migration and server-only key are deployed and the full Auth/Mailpit test
-passes. Hosted deployment and configuration require separate approval.
+for automated validation. The public recovery POST remains disabled pending
+the server-only key, production origin/enablement review, and hosted integration
+testing. Hosted Auth configuration and account operations require separate approval.

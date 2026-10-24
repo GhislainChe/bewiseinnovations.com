@@ -1,6 +1,7 @@
 import { type NextRequest } from "next/server";
 import { createRouteClient } from "@/lib/supabase/route";
-import { confirmationType, flowCookieOptions } from "@/lib/auth/flow";
+import { confirmationType } from "@/lib/auth/flow";
+import { setFlowCookie } from "@/lib/auth/flow-cookie";
 import { verifyConfirmation } from "@/lib/auth/confirmation";
 import { createAuthFlowStore } from "@/lib/auth/supabase-auth-store";
 import { authRedirect, validFormRequest } from "@/lib/auth/http";
@@ -23,6 +24,6 @@ export async function POST(request: NextRequest) {
   }
   if (!ticket) return apply(authRedirect(request, "/auth/error"));
   const response = authRedirect(request, type === "invite" ? "/auth/set-password" : "/auth/reset-password");
-  response.cookies.set("auth_flow", ticket, flowCookieOptions(request.nextUrl.protocol));
+  setFlowCookie(response, ticket, request.nextUrl.protocol);
   return apply(response);
 }

@@ -114,6 +114,11 @@ async function savePassword(type, password) {
   const response = await request(`${path}/complete`, { password, confirmation: password });
   assert.equal(response.status, 303);
   assert.match(response.headers.get('location') ?? '', /auth\/error/);
+  const flowDeletion = response.headers.getSetCookie().find((cookie) => cookie.startsWith('auth_flow='));
+  assert.ok(flowDeletion, 'Expected flow-cookie expiration.');
+  assert.match(flowDeletion, /Path=\/auth(?:;|$)/);
+  assert.match(flowDeletion, /Max-Age=0/i);
+  assert.match(flowDeletion, /Expires=Thu, 01 Jan 1970/i);
   assert.ok(!cookies.has('auth_flow'));
   const currentCookies = new Map(cookies);
   cookies.clear();

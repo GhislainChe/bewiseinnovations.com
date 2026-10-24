@@ -1,6 +1,7 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 export type FlowType = "invite" | "recovery";
+export const FLOW_COOKIE_NAME = "auth_flow";
 
 export function confirmationType(value: unknown): FlowType | null {
   return value === "invite" || value === "recovery" ? value : null;
@@ -40,6 +41,11 @@ export function flowCookieOptions(protocol: string) {
     path: "/auth",
     maxAge: 600,
   };
+}
+
+/** Same host-only identity and path as creation; expire immediately. */
+export function expiredFlowCookieOptions(protocol: string) {
+  return { ...flowCookieOptions(protocol), maxAge: 0, expires: new Date(0) };
 }
 
 export function issueFlowTicket(type: FlowType, userId: string): string {

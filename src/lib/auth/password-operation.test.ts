@@ -85,3 +85,26 @@ test("a failed password update burns the ticket, requiring a fresh email link", 
     else process.env.AUTH_FLOW_SIGNING_SECRET = previous;
   }
 });
+
+test("expired and tampered tickets never redeem or update a password", async () => {
+  const previous = process.env.AUTH_FLOW_SIGNING_SECRET;
+  const now = Date.now;
+  process.env.AUTH_FLOW_SIGNING_SECRET = TEST_SECRET;
+  try {
+    const { auth, calls } = gateway();
+    const tickets = store();
+    let redemptions = 0;
+    tickets.redeem = async () => { redemptions++; return true; };
+    const ticket = issueFlowTicket("recovery", "local-user");
+    const password = "Long-Local-Test-Password-123!";
+    assert.deepEqual(await changePasswordAfterConfirmation(auth, tickets, `${ticket}x`, "recovery", password, password), { kind: "denied" });
+    Date.now = () => now() + 11 * 60_000;
+    assert.deepEqual(await changePasswordAfterConfirmation(auth, tickets, ticket, "recovery", password, password), { kind: "denied" });
+    assert.equal(redemptions, 0);
+    assert.equal(calls.updates, 0);
+  } finally {
+    Date.now = now;
+    if (previous === undefined) delete process.env.AUTH_FLOW_SIGNING_SECRET;
+    else process.env.AUTH_FLOW_SIGNING_SECRET = previous;
+  }
+});

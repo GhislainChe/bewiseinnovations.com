@@ -1,5 +1,11 @@
 # Stage 2C.4 hosted database recovery point
 
+For the fresh post-RBAC recovery set created and restore-tested on 24 October
+2026, see [Stage 2D.9A backup diagnostics](./hosted-backup-diagnostics.md). It
+includes `app_private` and documents the working session-pooler method,
+measured export times, integrity hashes, and repeatable verification commands.
+The older recovery set below is preserved as historical evidence.
+
 **Source project:** `onfxxtvfprjnqsxdmhkp` (PostgreSQL 17.11.0.003).
 **Created:** 2026-10-22 04:18:41 UTC, before the two RBAC migrations.
 **Local backup:** `.supabase/backups/onfxxtvfprjnqsxdmhkp-20261022T041841Z/`.

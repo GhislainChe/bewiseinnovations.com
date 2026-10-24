@@ -1,11 +1,11 @@
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { readFlowTicket } from "@/lib/auth/flow";
+import { FLOW_COOKIE_NAME, readFlowTicket } from "@/lib/auth/flow";
 
 export default async function ResetPasswordPage() {
   const client = await createClient();
   const { data, error } = await client.auth.getUser();
-  const ticket = (await cookies()).get("auth_flow")?.value;
+  const ticket = (await cookies()).get(FLOW_COOKIE_NAME)?.value;
   if (error || !data.user || !readFlowTicket(ticket, "recovery", data.user.id)) {
     return <><h1 className="text-2xl font-semibold">Recovery unavailable</h1><p>Request a new password recovery email.</p></>;
   }

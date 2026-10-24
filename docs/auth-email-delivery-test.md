@@ -1,5 +1,10 @@
 # Stage 2D — Auth email delivery preparation
 
+Current hosted readiness, final localhost templates, browser-cookie blocker,
+and the approval-gated delivery/integration procedure are documented in
+[Stage 2D.10](./hosted-auth-configuration.md). The local Auth/Mailpit journeys
+have passed; real hosted SMTP delivery remains unverified.
+
 Target project: `onfxxtvfprjnqsxdmhkp`. This document prepares a delivery
 test; it does **not** authorize an invitation, Auth user creation, password
 recovery request, hosted setting change, or website deployment.
@@ -28,7 +33,8 @@ test transport.
 ## Routes required for actual invitations and recovery
 
 The routes below were subsequently implemented locally in Stage 2D.3, but have
-not been deployed or tested end-to-end with an Auth user. Before any real
+not been deployed. Real local Supabase Auth/Mailpit integration passed in
+Stage 2D.6; hosted end-to-end testing remains pending. Before any real
 invitation or recovery email is sent, review and test:
 
 - `GET /auth/confirm`: display a minimal, non-prefetching confirmation step for
@@ -40,8 +46,8 @@ invitation or recovery email is sent, review and test:
   same-origin path for the selected flow. Do not log or reflect the token.
 - An invitation password-setup route and a recovery password-update route,
   each requiring a fresh verified Auth session and appropriate one-time flow
-  state. These limited routes now exist locally, but the full Auth/Mailpit
-  integration test remains pending. Do not grant staff access until the
+  state. These limited routes and the local Auth/Mailpit journey are tested;
+  review the Stage 2D.10 browser cleanup issue before hosted testing. Do not grant staff access until the
   separately approved profile/role binding exists.
 
 For **PKCE flows that actually return a `code`**, a separate server callback may
