@@ -5,6 +5,7 @@ import { clearFlowCookie } from "@/lib/auth/flow-cookie";
 import { changePasswordAfterConfirmation } from "@/lib/auth/password-operation";
 import { createAuthFlowStore } from "@/lib/auth/supabase-auth-store";
 import { authRedirect, validFormRequest } from "@/lib/auth/http";
+import { passwordCompletionResponse } from "./password-response";
 
 export async function completePassword(request: NextRequest, type: FlowType) {
   if (!validFormRequest(request)) return authRedirect(request, "/auth/error");
@@ -21,15 +22,5 @@ export async function completePassword(request: NextRequest, type: FlowType) {
     clearFlowCookie(response, request.nextUrl.protocol);
     return apply(response);
   }
-  if (result.kind === "denied" || result.kind === "invalid") return apply(authRedirect(request, "/auth/error"));
-  const passwordPath = type === "invite" ? "/auth/set-password" : "/auth/reset-password";
-  if (result.kind === "validation") return apply(authRedirect(request, passwordPath, result.message));
-  if (result.kind === "save_failed") {
-    const response = authRedirect(request, "/auth/error", "Password could not be saved. Request a new email link.");
-    clearFlowCookie(response, request.nextUrl.protocol);
-    return apply(response);
-  }
-  const response = authRedirect(request, "/auth/error", type === "invite" ? "Password saved. Your account is pending activation." : "Password reset. You may sign in when an approved sign-in page is available.");
-  clearFlowCookie(response, request.nextUrl.protocol);
-  return apply(response);
+  return apply(passwordCompletionResponse(request, type, result));
 }

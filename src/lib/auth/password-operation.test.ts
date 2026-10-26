@@ -6,6 +6,29 @@ import type { AuthFlowStore } from "./auth-store";
 
 const TEST_SECRET = "test-only-signing-secret-with-at-least-32-characters";
 
+test("sign-out failure never reports saved success and cannot redeem the password ticket again", async () => {
+  const previous = process.env.AUTH_FLOW_SIGNING_SECRET;
+  process.env.AUTH_FLOW_SIGNING_SECRET = TEST_SECRET;
+  try {
+    for (const failure of ["returned", "thrown"] as const) {
+      const { auth, calls } = gateway();
+      auth.signOut = async () => { calls.signOuts++; if (failure === "thrown") throw new Error("private"); return { error: new Error("private") }; };
+      const tickets = store();
+      const ticket = issueFlowTicket("invite", "local-user");
+      const password = "Synthetic-Local-Password-Only";
+      assert.deepEqual(await changePasswordAfterConfirmation(auth, tickets, ticket, "invite", password, password), { kind: "sign_out_failed" });
+      assert.equal(calls.active, true); // Failure is not falsely treated as revocation.
+      assert.equal(calls.signOuts, 1);
+      assert.equal(calls.updates, 1);
+      assert.deepEqual(await changePasswordAfterConfirmation(auth, tickets, ticket, "invite", password, password), { kind: "denied" });
+      assert.equal(calls.signOuts, 1);
+    }
+  } finally {
+    if (previous === undefined) delete process.env.AUTH_FLOW_SIGNING_SECRET;
+    else process.env.AUTH_FLOW_SIGNING_SECRET = previous;
+  }
+});
+
 function gateway() {
   const calls = { updates: 0, signOuts: 0, active: true };
   const auth: PasswordGateway = {
@@ -61,6 +84,7 @@ test("weak and mismatched passwords are refused; success signs out and denies or
     assert.deepEqual(await changePasswordAfterConfirmation(auth, tickets, ticket, "invite", "Long-Local-Test-Password-123!", "Long-Local-Test-Password-123!"), { kind: "saved" });
     assert.equal(calls.updates, 1);
     assert.equal(calls.signOuts, 1);
+    assert.equal(calls.active, false);
     assert.deepEqual(await changePasswordAfterConfirmation(auth, tickets, ticket, "invite", "Long-Local-Test-Password-123!", "Long-Local-Test-Password-123!"), { kind: "denied" });
   } finally {
     if (previous === undefined) delete process.env.AUTH_FLOW_SIGNING_SECRET;

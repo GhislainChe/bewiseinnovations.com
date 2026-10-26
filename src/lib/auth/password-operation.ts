@@ -1,5 +1,6 @@
 import { passwordIssue, readFlowTicket, type FlowType } from "./flow";
 import type { AuthFlowStore } from "./auth-store";
+import { endCurrentSession } from "./sign-out";
 
 export interface PasswordGateway {
   getUser(): Promise<{ data: { user: { id: string } | null }; error: unknown }>;
@@ -12,6 +13,7 @@ export type PasswordOutcome =
   | { kind: "invalid" }
   | { kind: "validation"; message: string }
   | { kind: "save_failed" }
+  | { kind: "sign_out_failed" }
   | { kind: "saved" };
 
 export async function changePasswordAfterConfirmation(
@@ -31,16 +33,11 @@ export async function changePasswordAfterConfirmation(
   if (issue) return { kind: "validation", message: issue };
   // The database UPDATE is atomic; only one concurrent request can redeem.
   if (!await store.redeem(ticket!, data.user.id, type)) return { kind: "denied" };
+  let updated = false;
   try {
     const result = await gateway.updateUser({ password });
-    if (result.error) {
-      await gateway.signOut({ scope: "local" });
-      return { kind: "save_failed" };
-    }
-  } catch {
-    try { await gateway.signOut({ scope: "local" }); } catch { /* The ticket remains consumed. */ }
-    return { kind: "save_failed" };
-  }
-  await gateway.signOut({ scope: "local" });
-  return { kind: "saved" };
+    updated = !result.error;
+  } catch { /* A failed/uncertain update still burns the ticket. */ }
+  if (!await endCurrentSession(gateway)) return { kind: "sign_out_failed" };
+  return updated ? { kind: "saved" } : { kind: "save_failed" };
 }

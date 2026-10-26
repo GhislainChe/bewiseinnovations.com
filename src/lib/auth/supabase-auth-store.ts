@@ -16,7 +16,7 @@ export function createAuthFlowStore(): AuthFlowStore {
   });
   return {
     async ready() {
-      const { data, error } = await client.rpc("auth_flow_store_ready");
+      const { data, error } = await client.rpc("auth_flow_store_ready").abortSignal(AbortSignal.timeout(10000));
       return !error && data === true;
     },
     async register(ticket, userId, type) {

@@ -8,8 +8,14 @@
     "start": "next start",
     "lint": "eslint src scripts eslint.config.mjs next.config.ts postcss.config.mjs --max-warnings=0",
     "typecheck": "next typegen && tsc --noEmit",
-    "test:auth": "tsx --test src/lib/auth/core.test.ts src/lib/auth/flow.test.ts src/lib/auth/flow-cookie.test.ts src/lib/auth/confirmation.test.ts src/lib/auth/password-operation.test.ts src/lib/auth/recovery-operation.test.ts src/lib/auth/recovery-availability.test.ts src/app/auth/confirm/page.test.tsx",
+    "test:auth": "tsx --test src/lib/auth/core.test.ts src/lib/auth/flow.test.ts src/lib/auth/flow-cookie.test.ts src/lib/auth/fragment.test.ts src/lib/auth/sign-out.test.ts src/lib/auth/http.test.ts src/lib/auth/form-submit.test.ts src/lib/auth/confirmation.test.ts src/lib/auth/password-operation.test.ts src/lib/auth/recovery-operation.test.ts src/lib/auth/recovery-availability.test.ts src/app/auth/confirm/page.test.tsx src/app/auth/error/page.test.tsx scripts/hosted-auth-test-config.test.ts scripts/auth-diagnostic-output.test.ts",
+    "test:auth:http": "node scripts/test-auth-http-browser.mjs",
+    "test:auth:fragment": "tsx scripts/test-auth-fragment-browser.ts",
     "test:db:concurrency": "node scripts/test-auth-flow-concurrency.mjs",
+    "auth:hosted:prepare": "tsx scripts/prepare-hosted-auth-test.ts",
+    "auth:hosted:check": "node --conditions=react-server --import tsx scripts/check-hosted-auth-store.ts",
+    "auth:hosted:dev": "tsx scripts/dev-hosted-auth-test.ts",
+    "auth:hosted:logs": "tsx scripts/watch-auth-diagnostics.ts",
     "supabase:check": "node --env-file=.env.local scripts/check-supabase-connection.mjs"
   },
   "engines": {

@@ -1,6 +1,16 @@
 # Stage 2D.10 — hosted authentication configuration readiness
 
 Reviewed 24 October 2026 (Africa/Douala), project `onfxxtvfprjnqsxdmhkp`.
+Stage 2D.24 update: the owner has reconfirmed both exact saved fragment links,
+Site URL and redirect allowlist. This is owner verification, not a retrieved
+template HTML check or a new email-delivery test. See
+[privacy cleanup readiness](./auth-privacy-cleanup-readiness.md).
+Stage 2D.23 supersedes earlier query-token email links with fragment links.
+The examples below describe the required new links. The owner subsequently
+confirmed the saved changes in Stage 2D.24; this code never updates hosted
+templates automatically. See [trace privacy and checked sign-out](./auth-trace-privacy-and-sign-out.md).
+For the 26 October origin correction and new required server-only canonical
+origin setting, see [Stage 2D.18](./auth-origin-validation.md).
 This is a preparation and code-review record. It authorizes no credential
 retrieval/configuration, Dashboard change, email, account, or hosted data write.
 Neither `.env.local` nor `.env.integration.local` was edited.
@@ -8,6 +18,13 @@ Neither `.env.local` nor `.env.integration.local` was edited.
 For the subsequent read-only hosted checks, confirmed localhost URL/provider
 settings, the public-RPC/private-table compatibility analysis and the gated
 invitation procedure, see [Stage 2D.12 verification](./hosted-auth-verification.md).
+
+Stage 2D.13 prepared a separate ignored, owner-restricted credential file and
+safe CLI check/localhost launcher. See
+[hosted credential readiness](./hosted-auth-credential-readiness.md) for private
+Dashboard entry instructions. The owner entered the credential privately and
+the read-only readiness RPC passed against the approved hosted project.
+None of those preparation commands create an account or request an email.
 
 Stage 2D.11 subsequently corrected the flow-cookie path issue and added an
 explicit, default-off hosted-recovery testing gate. The controls below describe
@@ -102,7 +119,7 @@ HTML body with this proposed template. Suggested subject:
 ```html
 <h2>Accept your BE WISE INNOVATIONS invitation</h2>
 <p>Continue only if you expected this invitation. Opening the link will not confirm it.</p>
-<p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=invite">Review invitation</a></p>
+<p><a href="{{ .SiteURL }}/auth/confirm#token_hash={{ .TokenHash }}&amp;type=invite">Review invitation</a></p>
 <p>You will confirm on the website before choosing a password.</p>
 ```
 
@@ -112,7 +129,7 @@ Select **Reset password** and use this proposed body. Suggested subject:
 ```html
 <h2>BE WISE INNOVATIONS password recovery</h2>
 <p>If you requested a password reset, continue to review and confirm it.</p>
-<p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=recovery">Review password recovery</a></p>
+<p><a href="{{ .SiteURL }}/auth/confirm#token_hash={{ .TokenHash }}&amp;type=recovery">Review password recovery</a></p>
 <p>If you did not request this email, ignore it.</p>
 ```
 
@@ -121,8 +138,8 @@ This avoids depending on whether a Dashboard-initiated message supplies
 `RedirectTo`. With the reviewed Site URL, they render as:
 
 ```text
-http://localhost:3000/auth/confirm?token_hash=<one-time-hash>&type=invite
-http://localhost:3000/auth/confirm?token_hash=<one-time-hash>&type=recovery
+http://localhost:3000/auth/confirm#token_hash=<one-time-hash>&type=invite
+http://localhost:3000/auth/confirm#token_hash=<one-time-hash>&type=recovery
 ```
 
 The existing recovery template using `{{ .RedirectTo }}` remains compatible

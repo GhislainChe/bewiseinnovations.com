@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { verifyConfirmation, type ConfirmationGateway } from "./confirmation";
+import { verifyConfirmation, type ConfirmationGateway, type ConfirmationEvent } from "./confirmation";
 import { readFlowTicket } from "./flow";
 import type { AuthFlowStore } from "./auth-store";
 
@@ -80,6 +80,58 @@ test("unavailable durable store prevents OTP consumption", async () => {
     unavailable.ready = async () => false;
     await assert.rejects(verifyConfirmation(auth, unavailable, "invite", "unused-token"));
     assert.equal(called, false);
+  } finally {
+    if (previous === undefined) delete process.env.AUTH_FLOW_SIGNING_SECRET;
+    else process.env.AUTH_FLOW_SIGNING_SECRET = previous;
+  }
+});
+
+test("safe diagnostics distinguish provider rejection from failure after successful OTP verification", async () => {
+  const previous = process.env.AUTH_FLOW_SIGNING_SECRET;
+  process.env.AUTH_FLOW_SIGNING_SECRET = TEST_SECRET;
+  try {
+    const events: ConfirmationEvent[] = [];
+    const report = (event: ConfirmationEvent) => { events.push(event); };
+    const auth = gateway();
+    auth.verifyOtp = async () => ({ data: { user: null, session: null }, error: { code: "otp_expired", message: "sensitive-provider-details" } });
+    assert.equal(await verifyConfirmation(auth, store(), "invite", "sensitive-token", report), null);
+    assert.deepEqual(events.splice(0), ["otp_expired"]);
+    auth.verifyOtp = async () => ({ data: { user: null, session: null }, error: { code: "unknown-sensitive-code" } });
+    await verifyConfirmation(auth, store(), "invite", "sensitive-token", report);
+    assert.deepEqual(events.splice(0), ["otp_rejected"]);
+    const failedStore = store();
+    failedStore.register = async () => { throw new Error("sensitive-provider-details"); };
+    await assert.rejects(verifyConfirmation(gateway(), failedStore, "invite", "sensitive-token", report));
+    assert.deepEqual(events.splice(0), ["ticket_registration_failed"]);
+    const mismatch = gateway();
+    mismatch.getUser = async () => ({ data: { user: null }, error: new Error("sensitive-session-details") });
+    assert.equal(await verifyConfirmation(mismatch, store(), "invite", "sensitive-token", report), null);
+    assert.deepEqual(events.splice(0), ["session_verification_failed"]);
+    await verifyConfirmation(gateway(), store(), "invite", "sensitive-token", report);
+    assert.deepEqual(events, ["confirmed"]);
+  } finally {
+    if (previous === undefined) delete process.env.AUTH_FLOW_SIGNING_SECRET;
+    else process.env.AUTH_FLOW_SIGNING_SECRET = previous;
+  }
+});
+
+test("safe diagnostics report failed prerequisites without calling verifyOtp", async () => {
+  const previous = process.env.AUTH_FLOW_SIGNING_SECRET;
+  const events: ConfirmationEvent[] = [];
+  let calls = 0;
+  const auth = gateway();
+  auth.verifyOtp = async (input) => { calls++; return gateway().verifyOtp(input); };
+  const report = (event: ConfirmationEvent) => { events.push(event); };
+  try {
+    delete process.env.AUTH_FLOW_SIGNING_SECRET;
+    await assert.rejects(verifyConfirmation(auth, store(), "invite", "sensitive-token", report));
+    assert.deepEqual(events.splice(0), ["signing_configuration_failed"]);
+    process.env.AUTH_FLOW_SIGNING_SECRET = TEST_SECRET;
+    const unavailable = store();
+    unavailable.ready = async () => false;
+    await assert.rejects(verifyConfirmation(auth, unavailable, "invite", "sensitive-token", report));
+    assert.deepEqual(events, ["store_check_failed"]);
+    assert.equal(calls, 0);
   } finally {
     if (previous === undefined) delete process.env.AUTH_FLOW_SIGNING_SECRET;
     else process.env.AUTH_FLOW_SIGNING_SECRET = previous;

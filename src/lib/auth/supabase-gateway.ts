@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AuthGateway, CatalogEntry, Profile } from "@/lib/auth/core";
+import { endCurrentSession } from "./sign-out";
 
 function rowsOrThrow<T>(result: { data: T[] | null; error: unknown }): T[] {
   if (result.error) throw new Error("Unable to load staff authorization data.");
@@ -56,8 +57,7 @@ export function createSupabaseAuthGateway(client: SupabaseClient): AuthGateway {
       return !error;
     },
     async signOutCurrentSession() {
-      const { error } = await client.auth.signOut({ scope: "local" });
-      if (error) throw new Error("Unable to end the current session.");
+      if (!await endCurrentSession(client.auth)) throw new Error("Unable to end the current session.");
     },
   };
 }

@@ -61,7 +61,7 @@ async function nextMessage(previous) {
       const html = await fetch(`${mail}/view/${encodeURIComponent(fresh.ID)}.html`);
       assert.equal(html.status, 200);
       const content = (await html.text()).replaceAll('&amp;', '&');
-      const match = content.match(/https?:\/\/localhost:3000\/auth\/confirm\?[^"'\s<>]+/);
+      const match = content.match(/https?:\/\/localhost:3000\/auth\/confirm#[^"'\s<>]+/);
       assert.ok(match, 'Expected local confirmation link in Mailpit.');
       const link = new URL(match[0]);
       assert.equal(link.origin, app);
@@ -80,14 +80,17 @@ async function waitApp() {
   throw new Error('Next.js did not start.');
 }
 async function confirm(link, type) {
-  assert.equal(link.searchParams.get('type'), type);
-  const token = link.searchParams.get('token_hash');
+  const parameters = new URLSearchParams(link.hash.slice(1));
+  assert.equal(parameters.get('type'), type);
+  const token = parameters.get('token_hash');
   assert.ok(token);
   const before = { token_hash: token, type };
   for (let i = 0; i < 2; i++) {
-    const page = await request(`${link.pathname}${link.search}`);
+    const page = await request(link.pathname);
     assert.equal(page.status, 200);
-    assert.match(await page.text(), /Continue/);
+    const html = await page.text();
+    assert.match(html, /Secure confirmation/);
+    assert.equal(html.includes(token), false);
   }
   const response = await request('/auth/confirm/complete', before);
   assert.equal(response.status, 303);
@@ -131,7 +134,7 @@ async function savePassword(type, password) {
 try {
   phase = 'start local Next.js';
   next = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev', '--hostname', '127.0.0.1', '--port', '3000'], {
-    env: { ...process.env, NODE_ENV: 'development' }, stdio: 'ignore', windowsHide: true,
+    env: { ...process.env, NODE_ENV: 'development', AUTH_TRUSTED_ORIGIN: 'http://localhost:3000' }, stdio: 'ignore', windowsHide: true,
   });
   await waitApp();
   phase = 'invitation delivery';
@@ -143,7 +146,7 @@ try {
   phase = 'invitation confirmation and password';
   const invalidToken = await request('/auth/confirm/complete', { token_hash: 'x'.repeat(64), type: 'invite' });
   assert.equal(new URL(invalidToken.headers.get('location')).pathname, '/auth/error');
-  const wrongType = await request('/auth/confirm/complete', { token_hash: inviteLink.searchParams.get('token_hash'), type: 'signup' });
+  const wrongType = await request('/auth/confirm/complete', { token_hash: new URLSearchParams(inviteLink.hash.slice(1)).get('token_hash'), type: 'signup' });
   assert.equal(new URL(wrongType.headers.get('location')).pathname, '/auth/error');
   await confirm(inviteLink, 'invite');
   await savePassword('invite', firstPassword);

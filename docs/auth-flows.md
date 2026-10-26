@@ -1,5 +1,26 @@
 # Stage 2D.5 invitation and recovery security
 
+For current first-owner activation blockers and the approval sequence, see
+[Stage 2E.1 owner readiness](./platform-owner-readiness.md). MFA enforcement,
+enrollment/challenge and operational recovery are not implemented merely by
+having a functioning invitation/password flow.
+
+Stage 2D.25 completed the separately authorized historical trace and disposable
+hosted account cleanup. See [cleanup results](./auth-test-cleanup-result.md).
+The development server was left stopped; no new invitation is authorized.
+
+Stage 2D.24 verified synthetic fragment invite/recovery behavior and recorded
+owner confirmation of the exact saved hosted templates. See
+[privacy cleanup readiness](./auth-privacy-cleanup-readiness.md) for the current
+read-only account review, preserved trace inventory and separately approved
+cleanup steps. No cleanup or hosted email test was executed.
+
+Current Stage 2D.23 behavior: confirmation tokens now use URL fragments, not
+queries; legacy query links fail closed. Checked sign-out failures offer an
+explicit retry instead of pending-activation success. See
+[trace privacy and sign-out](./auth-trace-privacy-and-sign-out.md) for required
+manual email-template updates, trace cleanup precautions and validation.
+
 For the Stage 2D.10 manual credential setup, final localhost Dashboard templates,
 controlled test/cleanup procedure and outstanding browser-cookie/recovery gates,
 see [hosted authentication configuration](./hosted-auth-configuration.md).
@@ -134,13 +155,13 @@ In project `onfxxtvfprjnqsxdmhkp`, open **Authentication > Email > Templates**.
 For **Invite User**, use this action-link target:
 
 ```text
-{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite
+{{ .SiteURL }}/auth/confirm#token_hash={{ .TokenHash }}&type=invite
 ```
 
 For **Reset Password**, use:
 
 ```text
-{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery
+{{ .SiteURL }}/auth/confirm#token_hash={{ .TokenHash }}&type=recovery
 ```
 
 Review the final rendered links against the [Supabase template guidance](https://supabase.com/docs/guides/auth/auth-email-templates)
@@ -210,3 +231,31 @@ test:db:concurrency`, `npm run typecheck`, `npm run lint`, and `npm run build`
 for automated validation. The public recovery POST remains disabled pending
 the server-only key, production origin/enablement review, and hosted integration
 testing. Hosted Auth configuration and account operations require separate approval.
+
+## Hosted invitation failure diagnostics
+
+Stage 2D.22 verified the successful hosted invitation, password credential,
+redeemed ticket and server sign-out state. See
+[hosted success verification and logging caveats](./hosted-invitation-success-verification.md).
+Framework development traces retained token-bearing request URLs even though
+filtered terminal output was sanitized. Keep `.next/dev/trace` private and address
+trace handling before further real invitations; never attach raw traces to reports.
+
+Stage 2D.20 reproduced native browser forms sending Origin=null under no-referrer.
+Forms now use a single user-initiated CORS-mode fetch with the same privacy
+headers, followed by one validated navigation. See
+[browser Origin and navigation results](./auth-origin-and-navigation-investigation.md).
+Run `npm run test:auth:http` for the isolated real-browser/HTTP regression using
+synthetic data only; do not use a real invitation to diagnose a local change.
+
+Stage 2D.18 replaced request-derived origin checking with server-only
+`AUTH_TRUSTED_ORIGIN` and strict Host/forwarded-header checks. See
+[origin validation and regression results](./auth-origin-validation.md).
+The localhost launchers configure the approved origin explicitly; other launch
+methods must configure it before authentication POSTs are allowed.
+
+See [Stage 2D.15 investigation](./hosted-invitation-failure-review.md) for the
+original hosted failure evidence and remaining Dashboard Auth-log check. The
+confirmation POST emits fixed `auth_confirmation` stage labels only; provider
+errors, token-bearing URLs, form bodies, identities and cookies must never be
+logged. A generic error page alone does not establish that `verifyOtp` failed.
