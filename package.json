@@ -22,7 +22,8 @@
     "test:auth:mfa:browser": "node scripts/test-local-mfa-browser.mjs",
     "test:db:fresh": "node scripts/test-fresh-mfa-database.mjs",
     "test:db:content-role": "node scripts/test-content-role-transactions.mjs",
-    "test:auth:content:local": "node --conditions=react-server --import tsx scripts/test-local-content-permissions.ts"
+    "test:auth:content:local": "node --conditions=react-server --import tsx scripts/test-local-content-permissions.ts",
+    "test:permission:bridge": "tsx --test scripts/permission-session-bridge.test.ts"
   },
   "engines": {
     "node": ">=20.9.0",

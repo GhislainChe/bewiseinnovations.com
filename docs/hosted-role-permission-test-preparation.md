@@ -1,5 +1,10 @@
 # Stage 2E.10 — hosted role-permission preparation
 
+Current checkpoint: [Stage 2E.12 execution readiness](./hosted-role-test-execution-checkpoint.md)
+records the replacement factor/session check and the new approval-gated private
+browser-session adapter. Earlier missing-bridge/uncertain-current-factor blockers
+below describe historical checkpoints; no hosted binding has been executed.
+
 Follow-up: [Stage 2E.10B final safety check](./hosted-role-test-final-safety-check.md)
 reconfirmed exact identity and zero membership read-only. Hosted execution
 remains blocked on factor mitigation and private browser-session bridge review.
