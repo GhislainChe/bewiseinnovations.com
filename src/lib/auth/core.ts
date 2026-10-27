@@ -11,6 +11,7 @@ export type CatalogEntry = { id: string; code: string };
 
 export interface AuthGateway {
   getVerifiedUserId(): Promise<string | null>;
+  hasVerifiedAal2(userId: string): Promise<boolean>;
   getProfile(userId: string): Promise<Profile | null>;
   getRoleIds(userId: string): Promise<string[]>;
   getRoles(roleIds: string[]): Promise<CatalogEntry[]>;
@@ -27,9 +28,13 @@ export class AuthorizationError extends Error {
   }
 }
 
+/** Authentication may continue through /auth/mfa; this grants no staff access. */
+export class MfaRequiredError extends AuthorizationError {}
+
 export async function getCurrentTeamMember(gateway: AuthGateway): Promise<TeamMember | null> {
   const userId = await gateway.getVerifiedUserId();
   if (!userId) return null;
+  if (!await gateway.hasVerifiedAal2(userId)) return null;
 
   const profile = await gateway.getProfile(userId);
   if (!profile || profile.id !== userId || !profile.isActive) return null;
@@ -89,6 +94,9 @@ export async function signInTeamMember(
     if (await gateway.getVerifiedUserId()) await gateway.signOutCurrentSession();
     return null;
   }
+
+  const verifiedId = await gateway.getVerifiedUserId();
+  if (verifiedId && !await gateway.hasVerifiedAal2(verifiedId)) throw new MfaRequiredError();
 
   try {
     const member = await getCurrentTeamMember(gateway);

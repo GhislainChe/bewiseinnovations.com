@@ -1,11 +1,7 @@
 // LOCAL-ONLY PostgreSQL integration test. Never accepts a remote URL.
 import assert from 'node:assert/strict';
-import { execFile } from 'node:child_process';
 import { randomBytes, randomUUID } from 'node:crypto';
-import { promisify } from 'node:util';
-
-const run = promisify(execFile);
-const container = 'supabase_db_bewiseinnovations.com';
+import { localScalar } from './local-database.mjs';
 const uuid = randomUUID();
 const ticketHash = randomBytes(32).toString('hex');
 const emailHash = randomBytes(32).toString('hex');
@@ -14,11 +10,7 @@ const secondGlobalHash = randomBytes(32).toString('hex');
 const distinctEmails = Array.from({ length: 33 }, () => randomBytes(32).toString('hex'));
 
 async function sql(statement) {
-  const { stdout } = await run('docker', [
-    'exec', container, 'psql', '-U', 'postgres', '-d', 'postgres',
-    '-X', '-A', '-t', '-v', 'ON_ERROR_STOP=1', '-c', statement,
-  ], { timeout: 30000, maxBuffer: 1024 * 1024 });
-  return stdout.trim().split(/\r?\n/).at(-1)?.trim();
+  return localScalar(statement);
 }
 
 let setupComplete = false;

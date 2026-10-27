@@ -13,6 +13,12 @@ insert into auth.users (id) values
   ('00000000-0000-4000-8000-000000000005'),
   ('00000000-0000-4000-8000-000000000006');
 
+-- Synthetic AAL2 context for the existing role-policy assertions.
+insert into auth.mfa_factors (id,user_id,factor_type,status,created_at,updated_at)
+select id,id,'totp','verified',now(),now() from auth.users where id::text like '00000000-0000-4000-8000-%';
+insert into auth.sessions (id,user_id,factor_id,aal)
+select id,id,id,'aal2' from auth.users where id::text like '00000000-0000-4000-8000-%';
+
 insert into public.team_profiles (id, full_name, is_active) values
   ('00000000-0000-4000-8000-000000000001', 'Test Owner', true),
   ('00000000-0000-4000-8000-000000000002', 'Test Technical Lead', true),
@@ -94,6 +100,7 @@ select extensions.throws_ok($$select count(*) from public.roles$$, '42501', null
 reset role;
 set local role authenticated;
 select pg_catalog.set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000001', true);
+select pg_catalog.set_config('request.jwt.claims', json_build_object('aal','aal2','session_id','00000000-0000-4000-8000-000000000001','exp',extract(epoch from now()+interval '1 hour')::bigint)::text,true);
 select extensions.is((select count(*) from public.team_profiles), 6::bigint, 'owner can read team profiles');
 select extensions.is((select count(*) from public.team_role_assignments), 5::bigint, 'owner can read team assignments');
 select extensions.is((select count(*) from public.audit_logs), 2::bigint, 'owner can read all audit records');
@@ -114,6 +121,7 @@ select extensions.throws_ok(
 );
 
 select pg_catalog.set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000002', true);
+select pg_catalog.set_config('request.jwt.claims', json_build_object('aal','aal2','session_id','00000000-0000-4000-8000-000000000002','exp',extract(epoch from now()+interval '1 hour')::bigint)::text,true);
 select extensions.is((select count(*) from public.team_profiles), 1::bigint, 'technical lead reads only their profile');
 select extensions.is((select count(*) from public.team_role_assignments), 1::bigint, 'technical lead reads only their assignment');
 select extensions.is((select count(*) from public.audit_logs), 1::bigint, 'technical lead reads technical audit only');
@@ -122,6 +130,7 @@ select extensions.ok(not app_private.has_permission('inquiries.read'), 'technica
 select extensions.ok(not app_private.has_permission('team.manage'), 'technical lead lacks team management permission');
 
 select pg_catalog.set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000003', true);
+select pg_catalog.set_config('request.jwt.claims', json_build_object('aal','aal2','session_id','00000000-0000-4000-8000-000000000003','exp',extract(epoch from now()+interval '1 hour')::bigint)::text,true);
 select extensions.is((select count(*) from public.team_profiles), 1::bigint, 'operations lead reads only their profile');
 select extensions.is((select count(*) from public.audit_logs), 0::bigint, 'operations lead cannot read audit logs');
 select extensions.ok(app_private.has_permission('inquiries.read'), 'operations lead has inquiries permission');
@@ -134,6 +143,7 @@ select extensions.throws_ok(
 );
 
 select pg_catalog.set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000004', true);
+select pg_catalog.set_config('request.jwt.claims', json_build_object('aal','aal2','session_id','00000000-0000-4000-8000-000000000004','exp',extract(epoch from now()+interval '1 hour')::bigint)::text,true);
 select extensions.is((select count(*) from public.team_profiles), 1::bigint, 'content lead reads only their profile');
 select extensions.is((select count(*) from public.audit_logs), 0::bigint, 'content lead cannot read audit logs');
 select extensions.ok(app_private.has_permission('content.publish'), 'content lead has content publishing permission');
@@ -144,11 +154,13 @@ select extensions.throws_ok(
 );
 
 select pg_catalog.set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000005', true);
+select pg_catalog.set_config('request.jwt.claims', json_build_object('aal','aal2','session_id','00000000-0000-4000-8000-000000000005','exp',extract(epoch from now()+interval '1 hour')::bigint)::text,true);
 select extensions.is((select count(*) from public.team_profiles), 0::bigint, 'inactive staff cannot read profiles');
 select extensions.is((select count(*) from public.roles), 0::bigint, 'inactive staff cannot read the role catalog');
 select extensions.ok(not app_private.has_permission('team.read'), 'inactive owner assignment gives no permission');
 
 select pg_catalog.set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000006', true);
+select pg_catalog.set_config('request.jwt.claims', json_build_object('aal','aal2','session_id','00000000-0000-4000-8000-000000000006','exp',extract(epoch from now()+interval '1 hour')::bigint)::text,true);
 select extensions.is((select count(*) from public.team_profiles), 1::bigint, 'active unassigned staff can read their own profile');
 select extensions.is((select count(*) from public.team_role_assignments), 0::bigint, 'unassigned staff has no role assignment');
 select extensions.ok(not app_private.has_permission('team.read'), 'unassigned staff has no team permission');

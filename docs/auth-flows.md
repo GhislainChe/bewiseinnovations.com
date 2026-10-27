@@ -1,5 +1,14 @@
 # Stage 2D.5 invitation and recovery security
 
+For the current opt-in sign-out cookie investigation and separately approved
+browser Network procedure, see [sign-out cookie diagnostics](./sign-out-cookie-diagnostics.md).
+Instrumentation does not establish cookie removal or revoke additional sessions.
+
+Stage 2E.2 adds local TOTP enrollment/challenge, minimal sign-in, verified AAL2
+staff guards and a NEW local-only MFA RLS migration. See
+[MFA and owner recovery](./mfa-and-owner-recovery.md) for tests, operational
+recovery requirements and approval-gated hosted steps. Hosted recovery is off.
+
 For current first-owner activation blockers and the approval sequence, see
 [Stage 2E.1 owner readiness](./platform-owner-readiness.md). MFA enforcement,
 enrollment/challenge and operational recovery are not implemented merely by

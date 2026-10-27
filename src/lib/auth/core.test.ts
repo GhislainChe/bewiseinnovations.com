@@ -14,6 +14,7 @@ import {
 function gateway(overrides: Partial<AuthGateway> = {}): AuthGateway {
   return {
     getVerifiedUserId: async () => "user-1",
+    hasVerifiedAal2: async () => true,
     getProfile: async () => ({ id: "user-1", fullName: "Test Staff", isActive: true }),
     getRoleIds: async () => ["role-1"],
     getRoles: async () => [{ id: "role-1", code: "operations_lead" }],

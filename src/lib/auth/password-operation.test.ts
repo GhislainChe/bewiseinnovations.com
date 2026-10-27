@@ -33,6 +33,8 @@ function gateway() {
   const calls = { updates: 0, signOuts: 0, active: true };
   const auth: PasswordGateway = {
     getUser: async () => ({ data: { user: calls.active ? { id: "local-user" } : null }, error: null }),
+    getClaims: async () => ({ data: { claims: { sub: "local-user", role: "authenticated", aal: "aal1", session_id: "test-session", exp: Date.now() / 1000 + 300 } }, error: null }),
+    mfa: { listFactors: async () => ({ data: { all: [] }, error: null }) },
     updateUser: async () => { calls.updates++; return { error: null }; },
     signOut: async () => { calls.signOuts++; calls.active = false; return { error: null }; },
   };
@@ -52,6 +54,46 @@ function store(): AuthFlowStore {
     consumeRecoveryBudget: async () => true,
   };
 }
+
+test("enrolled recovery requires verified AAL2 before ticket redemption; step-up preserves the ticket", async () => {
+  const previous = process.env.AUTH_FLOW_SIGNING_SECRET;
+  process.env.AUTH_FLOW_SIGNING_SECRET = TEST_SECRET;
+  try {
+    const { auth, calls } = gateway();
+    auth.mfa.listFactors = async () => ({ data: { all: [{ factor_type: "totp", status: "verified" }] }, error: null });
+    const tickets = store(), ticket = issueFlowTicket("recovery", "local-user");
+    const password = "Long-Local-Test-Password-123!";
+    assert.deepEqual(await changePasswordAfterConfirmation(auth, tickets, ticket, "recovery", password, password), { kind: "mfa_required" });
+    assert.equal(calls.updates, 0);
+    assert.equal(calls.signOuts, 0);
+    auth.getClaims = async () => ({ data: { claims: { sub: "local-user", role: "authenticated", aal: "aal2", session_id: "test-session", exp: Date.now() / 1000 + 300 } }, error: null });
+    assert.deepEqual(await changePasswordAfterConfirmation(auth, tickets, ticket, "recovery", password, password), { kind: "saved" });
+    assert.equal(calls.updates, 1);
+  } finally {
+    if (previous === undefined) delete process.env.AUTH_FLOW_SIGNING_SECRET;
+    else process.env.AUTH_FLOW_SIGNING_SECRET = previous;
+  }
+});
+
+test("factor lookup or verified assurance failure fails closed before password update or redemption", async () => {
+  const previous = process.env.AUTH_FLOW_SIGNING_SECRET;
+  process.env.AUTH_FLOW_SIGNING_SECRET = TEST_SECRET;
+  try {
+    for (const failure of ["factors", "claims", "throw"] as const) {
+      const { auth, calls } = gateway();
+      if (failure === "claims") auth.getClaims = async () => ({ data: null, error: new Error("private") });
+      else auth.mfa.listFactors = async () => { if (failure === "throw") throw new Error("private"); return { data: null, error: new Error("private") }; };
+      let redeems = 0;
+      const tickets = store(); tickets.redeem = async () => { redeems++; return true; };
+      const password = "Long-Local-Test-Password-123!";
+      assert.deepEqual(await changePasswordAfterConfirmation(auth, tickets, issueFlowTicket("recovery", "local-user"), "recovery", password, password), { kind: "denied" });
+      assert.equal(redeems, 0); assert.equal(calls.updates, 0);
+    }
+  } finally {
+    if (previous === undefined) delete process.env.AUTH_FLOW_SIGNING_SECRET;
+    else process.env.AUTH_FLOW_SIGNING_SECRET = previous;
+  }
+});
 
 test("password changes require the matching verified invitation or recovery ticket", async () => {
   const previous = process.env.AUTH_FLOW_SIGNING_SECRET;

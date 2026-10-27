@@ -1,4 +1,4 @@
-export const AUTH_FORM_ACTIONS = ["/auth/confirm/complete", "/auth/set-password/complete", "/auth/reset-password/complete", "/auth/forgot-password/request", "/auth/sign-out/complete"] as const;
+export const AUTH_FORM_ACTIONS = ["/auth/confirm/complete", "/auth/set-password/complete", "/auth/reset-password/complete", "/auth/forgot-password/request", "/auth/sign-out/complete", "/auth/sign-in/complete"] as const;
 export type AuthFormAction = typeof AUTH_FORM_ACTIONS[number];
 
 /** One attempt per rendered form, including on network uncertainty. No retries. */
@@ -21,7 +21,7 @@ export function createAuthFormSubmitter(fetcher: typeof fetch, origin: string, n
       const destination = new URL(data.destination, origin);
       if (destination.origin !== origin || destination.hash ||
         [...destination.searchParams.keys()].some(key => key !== "message" && key !== "sent") ||
-        !["/auth/error", "/auth/set-password", "/auth/reset-password", "/auth/forgot-password"].includes(destination.pathname)) return "failed";
+        !["/auth/error", "/auth/set-password", "/auth/reset-password", "/auth/forgot-password", "/auth/mfa"].includes(destination.pathname)) return "failed";
       navigate(destination.pathname + destination.search);
       return "navigating";
     } catch { return "failed"; }

@@ -1,8 +1,9 @@
 import { passwordIssue, readFlowTicket, type FlowType } from "./flow";
 import type { AuthFlowStore } from "./auth-store";
 import { endCurrentSession } from "./sign-out";
+import { passwordMfaState, type PasswordMfaGateway } from "./password-mfa";
 
-export interface PasswordGateway {
+export interface PasswordGateway extends PasswordMfaGateway {
   getUser(): Promise<{ data: { user: { id: string } | null }; error: unknown }>;
   updateUser(input: { password: string }): Promise<{ error: unknown }>;
   signOut(input: { scope: "local" }): Promise<{ error: unknown }>;
@@ -11,6 +12,7 @@ export interface PasswordGateway {
 export type PasswordOutcome =
   | { kind: "denied" }
   | { kind: "invalid" }
+  | { kind: "mfa_required" }
   | { kind: "validation"; message: string }
   | { kind: "save_failed" }
   | { kind: "sign_out_failed" }
@@ -31,6 +33,9 @@ export async function changePasswordAfterConfirmation(
   }
   const issue = passwordIssue(password, confirmation);
   if (issue) return { kind: "validation", message: issue };
+  const assurance = await passwordMfaState(gateway, data.user.id);
+  if (assurance === "denied") return { kind: "denied" };
+  if (assurance === "required") return { kind: "mfa_required" };
   // The database UPDATE is atomic; only one concurrent request can redeem.
   if (!await store.redeem(ticket!, data.user.id, type)) return { kind: "denied" };
   let updated = false;

@@ -2,6 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AuthGateway, CatalogEntry, Profile } from "@/lib/auth/core";
 import { endCurrentSession } from "./sign-out";
+import { verifiedIdentity } from "./assurance";
 
 function rowsOrThrow<T>(result: { data: T[] | null; error: unknown }): T[] {
   if (result.error) throw new Error("Unable to load staff authorization data.");
@@ -11,6 +12,12 @@ function rowsOrThrow<T>(result: { data: T[] | null; error: unknown }): T[] {
 /** Queries use the caller's SSR client, so the existing RLS policies still apply. */
 export function createSupabaseAuthGateway(client: SupabaseClient): AuthGateway {
   return {
+    async hasVerifiedAal2(userId) {
+      const identity = await verifiedIdentity(client.auth);
+      if (identity?.id !== userId || identity.aal !== "aal2") return false;
+      const { data, error } = await client.auth.mfa.listFactors();
+      return !error && data.totp.some(factor => factor.status === "verified");
+    },
     async getVerifiedUserId() {
       // getUser calls Supabase Auth; cookie contents and user metadata are not trusted.
       const { data, error } = await client.auth.getUser();

@@ -1,3 +1,5 @@
+import { safeCookieDiagnosticLine } from "../src/lib/auth/cookie-diagnostics";
+
 const events = new Set([
   "origin_header_present", "origin_header_absent",
   ...["localhost", "loopback_ip", "other", "unconfigured"].map(value => `origin_expected_${value}`),
@@ -13,6 +15,8 @@ const events = new Set([
 
 /** Never forward child logs, URLs, arbitrary errors or even extra suffix text. */
 export function safeAuthDiagnosticLine(line: string): string | null {
+  const cookieLine = safeCookieDiagnosticLine(line.trim());
+  if (cookieLine) return cookieLine;
   const match = /^(auth_preflight|auth_confirmation) ([a-z_]+)$/.exec(line.trim());
   return match && events.has(match[2]) ? `${match[1]} ${match[2]}` : null;
 }

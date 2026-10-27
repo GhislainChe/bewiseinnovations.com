@@ -6,6 +6,7 @@ import { authRedirect } from "./http";
 import { SIGN_OUT_FAILED } from "./sign-out";
 
 export function passwordCompletionResponse(request: NextRequest, type: FlowType, result: PasswordOutcome) {
+  if (result.kind === "mfa_required") return authRedirect(request, "/auth/mfa");
   if (result.kind === "denied" || result.kind === "invalid") return authRedirect(request, "/auth/error");
   const path = type === "invite" ? "/auth/set-password" : "/auth/reset-password";
   if (result.kind === "validation") return authRedirect(request, path, result.message);

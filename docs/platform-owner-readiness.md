@@ -1,5 +1,9 @@
 # Stage 2E.1 — Platform Owner provisioning readiness
 
+Historical readiness review. Stage 2E.2 subsequently implemented/tested MFA and
+bootstrap locally; see [MFA and recovery](./mfa-and-owner-recovery.md). Hosted
+MFA deployment and operational recovery approval remain outstanding.
+
 Reviewed **26 October 2026**, Africa/Douala, for Supabase project
 `onfxxtvfprjnqsxdmhkp`. Confirmed intended owner: **Ndong Ghislain Che**;
 application role: **platform_owner**. The real owner email remains unknown.

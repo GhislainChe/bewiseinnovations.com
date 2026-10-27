@@ -1,8 +1,9 @@
-# First Platform Owner provisioning — Stage 2E.1 review
+# First Platform Owner provisioning — local Stage 2E.2 verification
 
 **Target:** Supabase project `onfxxtvfprjnqsxdmhkp`. **Status:** preparation
-only. No Auth user, profile, assignment, or audit row was created in this stage.
-This updates the Stage 2D.1 preparation guide. See the current
+only for hosted Supabase. No hosted Auth user, profile, assignment or audit row
+was created. Disposable local test records were created and cleaned up.
+Stage 2E.2 implemented and tested MFA locally; see [MFA and recovery](./mfa-and-owner-recovery.md). The new MFA migration is NOT deployed. This updates the Stage 2D.1 preparation guide. See the current
 [readiness report](./platform-owner-readiness.md) for observed hosted state and
 blocking MFA/recovery work. This procedure requires separate explicit approvals
 for invitation and for role binding. It is not ready to execute today.
@@ -31,9 +32,9 @@ the public settings endpoint. Reconfirm the Dashboard gates before invitation:
    yet been retested through a new real email.
 4. **Authentication > Multi-Factor Authentication:** confirm TOTP enrollment
    and verification enabled. Build/test a controlled enrollment and challenge
-   path first; current pages do not implement it. Owner privileged operations
+   path first; Stage 2E.2 supplies minimal local sign-in/MFA pages. Owner privileged operations
    require server-verified AAL2 and matching Data API/RLS enforcement, including
-   denial of unenrolled owners. Neither enforcement layer exists today.
+   denial of unenrolled owners. Both enforcement layers are now locally implemented/tested; the new database migration is not deployed remotely.
 5. Reconfirm public/anonymous signup disabled, confirmation required, the
    linked project and a reviewed recovery/lockout runbook. Do not activate the
    owner until the blocking gates in the readiness report are closed.
@@ -67,16 +68,14 @@ service-role keys, or database credentials in chat or source control.
    approved email. A second trusted reviewer should approve the ID/email pair
    and the planned `platform_owner` binding. Complete password setup, verified
    TOTP enrollment and a fresh AAL2 challenge using a separately reviewed harness
-   or future secure interface. Password setup signs out; there is no existing
-   login/MFA page, so this subsequent flow still needs implementation/testing.
+   or future secure interface. Password setup signs out; the local sign-in/MFA pages support this subsequent flow, but hosted operation remains approval-gated.
    The account remains without staff access until the next transaction commits.
 
 ## One-time binding transaction (reviewed template; do not execute yet)
 
-Run only in the **SQL Editor of the confirmed project** as a trusted database
-administrator, after separate explicit approval for this write. Replace the
-three `NULL` inputs with the verified UUID, verified email, and non-secret
-approval reference. Keep the input values out of committed files. Check the
+For a future hosted execution, use a secure administrative channel in the
+confirmed project only after separate explicit approval for that write. Supply
+the three private session inputs described below. Keep the input values out of committed files. Check the
 selected project and preview the Auth user before running the transaction.
 The transaction fails closed if inputs are missing, the email/UUID do not match
 one confirmed ordinary Auth user, team data or a prior bootstrap event exists,
@@ -84,112 +83,29 @@ verified TOTP is absent, or the owner permission set differs from the reviewed
 seed. A failure rolls back profile, assignment, and audit together. Database
 administrators retain an access-controlled approval/execution record.
 
-The revised template below has **not been executed**, even locally, in Stage
-2E.1. It needs a separate local bootstrap test stage with disposable local Auth
-and MFA fixtures before approval to execute against hosted data. Its TOTP check
-proves enrollment only, not current-session AAL2. Server/RLS MFA enforcement and
-recovery readiness are external prerequisites; SQL cannot attest application
-deployment. This creates an active owner and must remain blocked until those
-prerequisites are implemented and verified.
+Stage 2E.2 tested the canonical transaction locally: 30 bootstrap assertions,
+including concurrency and injected audit failure/rollback, plus a real local Auth
+user whose TOTP was enrolled and verified through Auth APIs. Its TOTP check proves
+enrollment only, not current-session AAL2. Application and database MFA checks
+were separately tested locally. Hosted MFA deployment, recovery/operator review,
+actual owner identity verification and separate write approvals remain prerequisites.
+Do not execute it against hosted Supabase merely because local tests passed.
 
-```sql
-begin;
-set local lock_timeout = '5s';
-set local statement_timeout = '15s';
+The canonical reviewed/tested transaction is [bootstrap-platform-owner.sql](../supabase/admin/bootstrap-platform-owner.sql).
+It is an administrative script, not a migration, public function or endpoint.
+Its body remains the reviewed atomic profile + exact role + audit transaction.
+The only input mechanism is three session parameters, all missing/empty by default:
 
-do $bootstrap$
-declare
-  v_auth_user_id uuid := null; -- replace with verified Auth UUID
-  v_expected_email text := null; -- replace with verified email
-  v_approval_reference text := null; -- replace with non-secret approval ID
-  v_role_id uuid;
-begin
-  if v_auth_user_id is null or v_expected_email is null
-     or pg_catalog.btrim(v_expected_email) = ''
-     or v_expected_email <> pg_catalog.btrim(v_expected_email)
-     or v_approval_reference is null
-     or pg_catalog.btrim(v_approval_reference) = '' then
-    raise exception 'Missing reviewed bootstrap inputs';
-  end if;
+- `bewise.bootstrap_user_id`: independently verified actual Auth UUID.
+- `bewise.bootstrap_email`: independently verified exact owner email.
+- `bewise.bootstrap_approval`: non-secret approval/reference identifying the trusted operator review.
 
-  -- Serialize concurrent bootstrap attempts; these locks release on commit.
-  lock table public.team_profiles, public.team_role_assignments
-    in share row exclusive mode;
-  lock table public.roles, public.permissions, public.role_permissions
-    in share mode;
-
-  -- Lock the selected identity so concurrent email/deletion changes cannot
-  -- make the reviewed UUID/email pair stale within this transaction.
-  perform 1 from auth.users
-      where id = v_auth_user_id
-        and pg_catalog.lower(email) = pg_catalog.lower(v_expected_email)
-        and email_confirmed_at is not null
-        and role = 'authenticated' and not coalesce(is_super_admin, false)
-      for update;
-  if not found then
-    raise exception 'Verified Auth identity does not match';
-  end if;
-  if (select count(*) from auth.users
-      where pg_catalog.lower(email) = pg_catalog.lower(v_expected_email)) <> 1 then
-    raise exception 'Ambiguous Auth email';
-  end if;
-
-  if exists (select 1 from public.team_profiles)
-     or exists (select 1 from public.team_role_assignments) then
-    raise exception 'First-owner bootstrap requires empty team tables';
-  end if;
-  if exists (select 1 from public.audit_logs
-             where action = 'platform_owner.bootstrap') then
-    raise exception 'A prior first-owner bootstrap is recorded';
-  end if;
-
-  -- Never read or output factor secrets. Enrollment does not replace an AAL2
-  -- challenge or the future server/database MFA enforcement prerequisites.
-  perform 1 from auth.mfa_factors
-    where user_id = v_auth_user_id and factor_type = 'totp'
-      and status = 'verified'
-    for share;
-  if not found then
-    raise exception 'Verified TOTP enrollment required';
-  end if;
-
-  select id into strict v_role_id
-  from public.roles where code = 'platform_owner';
-
-  if (select pg_catalog.array_agg(p.code order by p.code)
-      from public.role_permissions rp
-      join public.permissions p on p.id = rp.permission_id
-      where rp.role_id = v_role_id) is distinct from array[
-    'audit.read', 'audit.technical.read', 'content.create', 'content.publish',
-    'content.read', 'content.update', 'inquiries.manage', 'inquiries.read',
-    'registrations.manage', 'registrations.read', 'roles.assign', 'settings.manage',
-    'team.manage', 'team.read', 'technical.manage', 'technical.read',
-    'waitlists.manage', 'waitlists.read'
-  ]::text[] then
-    raise exception 'Unexpected owner permission catalog';
-  end if;
-
-  insert into public.team_profiles (id, full_name, is_active)
-  values (v_auth_user_id, 'Ndong Ghislain Che', true);
-
-  insert into public.team_role_assignments (user_id, role_id)
-  values (v_auth_user_id, v_role_id);
-
-  insert into public.audit_logs
-    (actor_id, action, resource_type, resource_id, metadata)
-  values
-    (null, 'platform_owner.bootstrap', 'team_profile',
-     v_auth_user_id::text,
-     pg_catalog.jsonb_build_object(
-       'approval_reference', v_approval_reference,
-       'performed_via', 'reviewed_admin_sql',
-       'role_code', 'platform_owner'
-     ));
-end;
-$bootstrap$;
-
-commit;
-```
+Supply these privately on the SAME trusted administrative connection before the
+script. Do not place actual founder inputs in source, chat, shell history or
+application request parameters. Close/discard that dedicated connection afterward;
+never reuse privileged pooled application connections for bootstrap parameters.
+The script contains its own BEGIN/COMMIT and bounded locks. A failed transaction
+must be rolled back before any further work. No hosted execution is authorized.
 
 `actor_id` is NULL because a trusted database administrator performs the
 bootstrap; attributing the write to the newly created owner would be false.
@@ -205,7 +121,7 @@ one profile with the reviewed UUID and full name, exactly one assignment to
 audit row. Confirm that no other Auth user or team row changed. Do not publish
 the founder's email or Auth ID in logs. Test sign-in only through a separately
 approved secure interface or controlled harness; the app has limited local
-callback routes but no login/MFA interface. Verify AAL1 and missing/expired
+callback routes with minimal local sign-in/MFA routes that are not deployed. Verify AAL1 and missing/expired
 sessions cannot perform privileged operations through either server routes or
 direct Data API requests. Verify AAL2 retains only the assigned permissions.
 Do not assume recovery codes exist: this application and its installed SDK have
@@ -224,10 +140,10 @@ automatically promote another signup. Recovery email and lost-factor procedures
 must reverify identity through a trusted administrator and preserve an audit
 trail.
 
-The existing 74-assertion local pgTAP suite verifies RLS denial for anon,
+The 92-assertion local pgTAP suite verifies RLS denial for anon,
 self-promotion denial, inactive staff denial, and intended owner permissions.
-The 66 Auth tests include denial of unassigned Auth users and checked sign-out
-failure behavior. These tests do not prove MFA enforcement, the revised bootstrap
-template, recovery readiness or delivery of the new fragment templates. Test
-those separately before approving first-owner privileges. No existing deployed
-RBAC migration or runtime authorization code was modified for this review.
+The 71 Auth tests include denial of unassigned Auth users and checked sign-out
+failure behavior. MFA and bootstrap now have additional real local integration/concurrency coverage;
+see the current MFA report for exact evidence and limits. No hosted MFA policy,
+founder record, or Auth setting was modified. Real hosted recovery and the final
+owner provisioning journey remain untested and separately approved.
