@@ -53,7 +53,7 @@ begin
   select id into strict v_role_id from public.roles where code='content_community_lead';
   if (select array_agg(p.code order by p.code) from public.role_permissions rp
       join public.permissions p on p.id=rp.permission_id where rp.role_id=v_role_id)
-    is distinct from array['content.create','content.publish','content.read','content.update']::text[] then
+    is distinct from array['company.overview.read','content.create','content.publish','content.read','content.update']::text[] then
     raise exception 'Unexpected content role permissions';
   end if;
   insert into public.team_profiles(id,full_name,is_active)

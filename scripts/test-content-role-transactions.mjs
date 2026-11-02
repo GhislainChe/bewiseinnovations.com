@@ -59,9 +59,9 @@ try {
   eq(await localScalar(`select count(*) from public.team_role_assignments where user_id='${u}';`),'0');
   eq(await localScalar(`select count(*) from auth.users where id='${u}';`),'1'); // Separate Auth operation, never implicit.
   eq(await localScalar(`select count(*) from public.audit_logs where metadata->>'test_run'='${run}';`),'2');
-  eq(await localScalar("select concat((select count(*) from public.roles),':',(select count(*) from public.permissions),':',(select count(*) from public.role_permissions));"),'4:18:31');
+  eq(await localScalar("select concat((select count(*) from public.roles),':',(select count(*) from public.permissions),':',(select count(*) from public.role_permissions));"),'4:27:52');
   console.log(`PASS: ${assertions} real local binding/cleanup assertions; rollback, exact identity/factor/role, retained audit and concurrency 1/2 for each transaction.`);
-} catch {console.error('Local content-role transaction test failed; raw SQL and identifiers suppressed.');process.exitCode=1;}
+} catch {console.error('Local content-role transaction test failed after '+assertions+' assertions; raw SQL and identifiers suppressed.');process.exitCode=1;}
 finally {
   if(created) await localSql(`delete from public.audit_logs where metadata->>'test_run'='${run}' and resource_id='${u}';delete from auth.users where id='${u}' and email='${email}';`);
 }

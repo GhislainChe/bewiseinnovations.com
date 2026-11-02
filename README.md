@@ -1,5 +1,14 @@
 # BE WISE INNOVATIONS
 
+Public local interface: [Stage 4A.2 Services and Project Request UI](docs/services-request-ui.md).
+Use `npm run dev:business` for the isolated local preview on port 3022; no hosted
+credentials, deployment or example pricing is needed.
+
+Current local business backend: [Stage 4A.1 services and project-request foundation](docs/services-request-foundation.md).
+The approved [platform specification](docs/platform-specification.md) defines future
+modules. Deployment/founder onboarding remain postponed. Earlier stage descriptions
+below are historical foundation notes; use the linked current reports for readiness.
+
 Official website foundation — Stage 2C.1: internal authentication backend.
 
 ## Requirements
@@ -191,3 +200,29 @@ website at runtime. Do not pass untrusted glob patterns to development tooling.
 ESLint 9.39.5 is deprecated upstream but retained because the bundled React lint
 plugin declares support through ESLint 9. Upgrade the lint stack together once
 its peer dependencies support the newer major version.
+# Local service management (Stage 4A.3)
+
+See [the service-management report](docs/service-management-dashboard.md) for the
+approved catalog initializer, protected staff routes, permission boundaries and
+local test results. `npm run services:init:local` initializes missing local services;
+`npm run dev:business` serves `/internal/services` and `/internal/requests` on localhost:3022.
+Staff access requires an active local team identity and verified AAL2; no founder
+accounts or permanent demo credentials are created.
+
+Stage 4A.4 adds [private Request PDF exports and quotation preparation](docs/request-pdf-and-quotations.md)
+inside the request inbox, with explicit XAF pricing, immutable finalized revisions,
+private archived PDFs and local-only permissions/migrations. See that report for
+artifact backups, tests and limitations; no sending or payment feature is enabled.
+
+Stage 4A.5 adds [official branding and quotation delivery preparation](docs/quotation-delivery-and-brand.md):
+original supplied logo assets, versioned branded PDFs, WhatsApp-assisted manual
+dispatch, disabled email previews/CID packages, and private audited dispatch history.
+It remains local-only; no email or WhatsApp transport is enabled.
+
+Stage 4B.1 adds [Projects and milestone tracking](docs/projects-and-milestones.md):
+protected Company Overview and Projects routes, Operations-approved verified-contact
+intakes, equal-weight milestone progress, and explicitly confirmed private progress
+notification intents. Use `/internal`, `/internal/projects` and `/internal/requests`
+on localhost:3022. Real email sending remains disabled. Local checks:
+`npm run test:projects` and `npm run test:projects:local`; run active-local database,
+Auth integration and browser suites serially to isolate their disposable fixtures.

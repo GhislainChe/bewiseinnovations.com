@@ -1,0 +1,85 @@
+{
+  "bw logo icon white.png": {
+    "sha256": "b13c882b8d2adb504259a3c58912c8045aedfe78d2efd05bd02f078812b05a66",
+    "width": 534,
+    "height": 534,
+    "opaqueColors": [
+      [
+        "#FFFFFF",
+        114794
+      ]
+    ]
+  },
+  "renewed brain logo.png": {
+    "sha256": "d5d174bde20bb554cc4176c2ac12002eea2e708ebef573803f44921173b6f20a",
+    "width": 534,
+    "height": 534,
+    "opaqueColors": [
+      [
+        "#000000",
+        84873
+      ],
+      [
+        "#2A3186",
+        30046
+      ]
+    ]
+  },
+  "renewed logo.png": {
+    "sha256": "abea7a5c77ced657b96e57f47800c805edd49436f25603bcaf0964edd480e168",
+    "width": 2212,
+    "height": 624,
+    "opaqueColors": [
+      [
+        "#171717",
+        310638
+      ],
+      [
+        "#2A3186",
+        177495
+      ],
+      [
+        "#000000",
+        116079
+      ]
+    ]
+  },
+  "renewed text logo.png": {
+    "sha256": "8f594d6dc473f5d9f23c1e8c4bd02403501bc244fc553f1ef2d5d3366f268a52",
+    "width": 1321,
+    "height": 468,
+    "opaqueColors": [
+      [
+        "#171717",
+        226875
+      ],
+      [
+        "#2A3186",
+        99685
+      ]
+    ]
+  },
+  "slogan tagline.png": {
+    "sha256": "6c5c00e9f7ffee6816ab508325367baf7200d756581ad5d468e2dae4e2092006",
+    "width": 2551,
+    "height": 314,
+    "opaqueColors": [
+      [
+        "#FFFFFF",
+        782542
+      ],
+      [
+        "#3E65AF",
+        14493
+      ],
+      [
+        "#9CA6D4",
+        587
+      ],
+      [
+        "#4C6BB3",
+        348
+      ]
+    ]
+  }
+}

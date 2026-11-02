@@ -23,16 +23,32 @@
     "test:db:fresh": "node scripts/test-fresh-mfa-database.mjs",
     "test:db:content-role": "node scripts/test-content-role-transactions.mjs",
     "test:auth:content:local": "node --conditions=react-server --import tsx scripts/test-local-content-permissions.ts",
-    "test:permission:bridge": "tsx --test scripts/permission-session-bridge.test.ts"
+    "test:permission:bridge": "tsx --test scripts/permission-session-bridge.test.ts",
+    "test:services": "node --conditions=react-server --import tsx --test src/features/services/services.test.ts src/features/services/public-model.test.ts src/features/services/staff.test.ts",
+    "test:services:local": "node --conditions=react-server --import tsx scripts/test-local-services-integration.ts",
+    "test:services:concurrency": "node scripts/test-service-request-concurrency.mjs",
+    "test:services:browser": "node scripts/test-local-services-browser.mjs",
+    "dev:business": "node scripts/dev-local-business.mjs",
+    "services:init:local": "node scripts/init-local-services.mjs",
+    "test:services:catalog": "node scripts/test-local-catalog.mjs",
+    "test:services:staff:browser": "node scripts/test-local-staff-browser.mjs",
+    "test:quotations": "node --conditions=react-server --import tsx --test src/features/quotations/quotations.test.ts",
+    "test:delivery": "node --conditions=react-server --import tsx --test src/features/delivery/delivery.test.ts",
+    "test:projects": "node --conditions=react-server --import tsx --test src/features/projects/projects.test.ts",
+    "test:projects:local": "node --conditions=react-server --import tsx scripts/test-local-projects-integration.ts"
   },
   "engines": {
     "node": ">=20.9.0",
     "npm": ">=10"
   },
   "dependencies": {
+    "@fontsource/noto-sans": "5.3.0",
+    "@fontsource/quicksand": "5.3.0",
+    "@pdf-lib/fontkit": "1.1.1",
     "@supabase/ssr": "0.10.0",
     "@supabase/supabase-js": "2.100.1",
     "next": "16.4.2",
+    "pdf-lib": "1.17.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "server-only": "0.0.1"

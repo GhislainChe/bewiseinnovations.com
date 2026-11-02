@@ -68,9 +68,10 @@ begin
       from public.role_permissions rp
       join public.permissions p on p.id = rp.permission_id
       where rp.role_id = v_role_id) is distinct from array[
-    'audit.read', 'audit.technical.read', 'content.create', 'content.publish',
-    'content.read', 'content.update', 'inquiries.manage', 'inquiries.read',
-    'registrations.manage', 'registrations.read', 'roles.assign', 'settings.manage',
+    'audit.read', 'audit.technical.read', 'company.overview.read', 'content.create', 'content.publish',
+    'content.read', 'content.update', 'documents.export', 'inquiries.manage', 'inquiries.read',
+    'projects.manage', 'projects.notify', 'projects.read',
+    'quotations.manage', 'quotations.read', 'quotations.send', 'registrations.manage', 'registrations.read', 'roles.assign', 'services.budgets.manage', 'settings.manage',
     'team.manage', 'team.read', 'technical.manage', 'technical.read',
     'waitlists.manage', 'waitlists.read'
   ]::text[] then

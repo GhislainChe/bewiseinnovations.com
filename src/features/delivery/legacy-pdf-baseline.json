@@ -1,0 +1,43 @@
+{
+  "document": {
+    "company": {
+      "name": "BE WISE INNOVATIONS",
+      "email": "contact@bewiseinnovation.com",
+      "website": "bewiseinnovation.com"
+    },
+    "number": "BWQ-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "revision": 1,
+    "date": "2026-11-01",
+    "client": {
+      "name": "Synthetic Client",
+      "email": "synthetic@example.invalid",
+      "whatsapp": "+237600000000"
+    },
+    "request": {
+      "reference": "BWR-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "service": "Website Development"
+    },
+    "content": {
+      "projectDescription": "A client project",
+      "scope": "Agreed scope",
+      "deliverables": "A tested deliverable",
+      "timeline": "Three weeks",
+      "paymentTerms": "Staff entered terms",
+      "validUntil": "2027-01-01",
+      "notes": "",
+      "exclusions": "Hosting excluded",
+      "teamAgreement": true,
+      "currency": "XAF",
+      "items": [
+        {
+          "description": "Explicit item",
+          "quantity": 2,
+          "unitAmount": 50000
+        }
+      ]
+    },
+    "total": 100000,
+    "templateVersion": 1
+  },
+  "sha256": "ab0b592da526aaf7737ea009fa739f770df58c863b0a9a27e6ea1b46f9921d4f"
+}

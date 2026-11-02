@@ -21,7 +21,7 @@ async function sql(statement,database='mfa_preflight') {
   });
 }
 try {
-  const source=await docker(['exec','supabase_db_bewiseinnovations.com','pg_dump','-h','/var/run/postgresql','-U','postgres','-d','postgres','--schema-only','--schema=auth','--no-owner','--no-acl']);
+  const source=await docker(['exec','supabase_db_bewiseinnovations.com','pg_dump','-h','/var/run/postgresql','-U','postgres','-d','postgres','--schema-only','--schema=auth','--schema=storage','--no-owner','--no-acl']);
   assert.ok(source.stdout.includes('CREATE TABLE auth.sessions') && source.stdout.includes('CREATE TABLE auth.mfa_factors'));
   phase='start isolated PostgreSQL 17';
   await docker(['run','-d','--name',container,'--network','none','--label','bewise.preflight=mfa','--env','POSTGRES_PASSWORD',image]); created=true;
@@ -34,21 +34,28 @@ try {
   assert.ok(ready);
   await sql('create database mfa_preflight owner postgres;','postgres');
   phase='install matching local Auth schema and test extension';
-  await sql(source.stdout);
+  // Remove only this application's Storage policy: the new migration recreates it after its business tables exist.
+  const baselineSchemas=source.stdout.replace(/^CREATE POLICY request_document_download[^;]*;\r?\n/gm,'');
+  await sql(baselineSchemas);
   await sql(`create schema extensions;create extension pgtap with schema extensions;
+    alter schema storage owner to supabase_storage_admin;
+    alter table storage.buckets owner to supabase_storage_admin;
+    alter table storage.objects owner to supabase_storage_admin;
+    grant usage on schema storage to postgres,anon,authenticated,service_role;
+    grant all on storage.buckets,storage.objects to postgres;
     grant usage on schema auth to anon,authenticated,service_role,postgres;
     grant all on all tables in schema auth to postgres;
     grant usage on schema extensions to postgres,anon,authenticated,service_role;`);
   phase='apply all application migrations in order';
   const files=readdirSync('supabase/migrations').filter(f=>f.endsWith('.sql')).sort();
-  assert.deepEqual(files,['20261021010000_internal_rbac.sql','20261021010100_seed_internal_roles.sql','20261023010000_auth_flow_security.sql','20261026010000_require_staff_mfa.sql']);
+  assert.deepEqual(files,['20261021010000_internal_rbac.sql','20261021010100_seed_internal_roles.sql','20261023010000_auth_flow_security.sql','20261026010000_require_staff_mfa.sql','20261031010000_services_project_requests.sql','20261101010000_service_management.sql','20261101010100_business_conflict_responses.sql','20261101020000_request_documents_quotations.sql','20261101030000_quotation_delivery_brand.sql','20261102010000_projects_milestones.sql']);
   for(const file of files) {
     await sql(`begin;set local role postgres;${readFileSync('supabase/migrations/'+file,'utf8')}commit;`);
     console.log('Fresh isolated migration applied: '+file);
   }
   // Catalog seed is designed to be repeatable; DDL migrations run once/in order.
   await sql(`begin;set local role postgres;${readFileSync('supabase/migrations/20261021010100_seed_internal_roles.sql','utf8')}commit;`);
-  assert.equal((await sql('select count(*) from public.role_permissions;')).trim(),'31');
+  assert.equal((await sql('select count(*) from public.role_permissions;')).trim(),'52');
   phase='fresh isolated pgTAP authorization tests';
   let passed=0;
   for(const file of readdirSync('supabase/tests').filter(f=>f.endsWith('.sql')).sort()) {
@@ -57,7 +64,7 @@ try {
     const count=(tap.match(/^ok [0-9]+\b/gm)||[]).length;
     assert.ok(count>0 && !/^not ok\b/m.test(tap) && !/Looks like you/i.test(tap));passed+=count;
   }
-  assert.equal(passed,92);console.log('Fresh isolated pgTAP: 92/92 passed; repeat seed retains 31 mappings.');
+  assert.equal(passed,290);console.log('Fresh isolated pgTAP: '+passed+'/'+passed+' passed; repeat catalog seed retains 52 mappings.');
   phase='fresh isolated canonical owner bootstrap tests';
   for(const file of ['test-owner-bootstrap.mjs','test-auth-flow-concurrency.mjs']) {
     const result=await run(process.execPath,['scripts/'+file],{env,timeout:120000,maxBuffer:200000});

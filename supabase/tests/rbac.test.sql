@@ -43,15 +43,15 @@ insert into public.audit_logs (actor_id, action, resource_type) values
   ('00000000-0000-4000-8000-000000000001', 'inquiry.review', 'inquiry');
 
 select extensions.is((select count(*) from public.roles), 4::bigint, 'exactly four roles are seeded');
-select extensions.is((select count(*) from public.permissions), 18::bigint, 'exactly 18 permissions are seeded');
-select extensions.is((select count(*) from public.role_permissions), 31::bigint, 'exactly 31 role grants are seeded');
+select extensions.is((select count(*) from public.permissions), 27::bigint, 'exactly 27 reviewed permissions are seeded');
+select extensions.is((select count(*) from public.role_permissions), 52::bigint, 'exactly 52 reviewed role grants are seeded');
 select extensions.is(
   (select pg_catalog.string_agg(permission.code, ',' order by permission.code)
    from public.role_permissions as grant_entry
    join public.roles as role on role.id = grant_entry.role_id
    join public.permissions as permission on permission.id = grant_entry.permission_id
    where role.code = 'platform_owner'),
-  'audit.read,audit.technical.read,content.create,content.publish,content.read,content.update,inquiries.manage,inquiries.read,registrations.manage,registrations.read,roles.assign,settings.manage,team.manage,team.read,technical.manage,technical.read,waitlists.manage,waitlists.read',
+  'audit.read,audit.technical.read,company.overview.read,content.create,content.publish,content.read,content.update,documents.export,inquiries.manage,inquiries.read,projects.manage,projects.notify,projects.read,quotations.manage,quotations.read,quotations.send,registrations.manage,registrations.read,roles.assign,services.budgets.manage,settings.manage,team.manage,team.read,technical.manage,technical.read,waitlists.manage,waitlists.read',
   'owner has exactly the approved permission set'
 );
 select extensions.is(
@@ -60,7 +60,7 @@ select extensions.is(
    join public.roles as role on role.id = grant_entry.role_id
    join public.permissions as permission on permission.id = grant_entry.permission_id
    where role.code = 'technical_lead'),
-  'audit.technical.read,technical.manage,technical.read',
+  'audit.technical.read,company.overview.read,projects.manage,projects.notify,projects.read,technical.manage,technical.read',
   'technical lead has exactly the approved permission set'
 );
 select extensions.is(
@@ -69,7 +69,7 @@ select extensions.is(
    join public.roles as role on role.id = grant_entry.role_id
    join public.permissions as permission on permission.id = grant_entry.permission_id
    where role.code = 'operations_lead'),
-  'inquiries.manage,inquiries.read,registrations.manage,registrations.read,waitlists.manage,waitlists.read',
+  'company.overview.read,documents.export,inquiries.manage,inquiries.read,projects.read,quotations.manage,quotations.read,quotations.send,registrations.manage,registrations.read,services.budgets.manage,waitlists.manage,waitlists.read',
   'operations lead has exactly the approved permission set'
 );
 select extensions.is(
@@ -78,7 +78,7 @@ select extensions.is(
    join public.roles as role on role.id = grant_entry.role_id
    join public.permissions as permission on permission.id = grant_entry.permission_id
    where role.code = 'content_community_lead'),
-  'content.create,content.publish,content.read,content.update',
+  'company.overview.read,content.create,content.publish,content.read,content.update',
   'content lead has exactly the approved permission set'
 );
 select extensions.ok(
