@@ -35,7 +35,7 @@ try {
   await sql('create database mfa_preflight owner postgres;','postgres');
   phase='install matching local Auth schema and test extension';
   // Remove only this application's Storage policy: the new migration recreates it after its business tables exist.
-  const baselineSchemas=source.stdout.replace(/^CREATE POLICY request_document_download[^;]*;\r?\n/gm,'');
+  const baselineSchemas=source.stdout.replace(/^CREATE POLICY (request_document_download|program_document_download)[^;]*;\r?\n/gm,'');
   await sql(baselineSchemas);
   await sql(`create schema extensions;create extension pgtap with schema extensions;
     alter schema storage owner to supabase_storage_admin;
@@ -48,14 +48,14 @@ try {
     grant usage on schema extensions to postgres,anon,authenticated,service_role;`);
   phase='apply all application migrations in order';
   const files=readdirSync('supabase/migrations').filter(f=>f.endsWith('.sql')).sort();
-  assert.deepEqual(files,['20261021010000_internal_rbac.sql','20261021010100_seed_internal_roles.sql','20261023010000_auth_flow_security.sql','20261026010000_require_staff_mfa.sql','20261031010000_services_project_requests.sql','20261101010000_service_management.sql','20261101010100_business_conflict_responses.sql','20261101020000_request_documents_quotations.sql','20261101030000_quotation_delivery_brand.sql','20261102010000_projects_milestones.sql']);
+  assert.deepEqual(files,['20261021010000_internal_rbac.sql','20261021010100_seed_internal_roles.sql','20261023010000_auth_flow_security.sql','20261026010000_require_staff_mfa.sql','20261031010000_services_project_requests.sql','20261101010000_service_management.sql','20261101010100_business_conflict_responses.sql','20261101020000_request_documents_quotations.sql','20261101030000_quotation_delivery_brand.sql','20261102010000_projects_milestones.sql','20261102020000_products_waitlists.sql','20261102030000_inside_be_wise.sql','20261102040000_opportunities_programs.sql','20261102050000_events_registration_tickets.sql','20261102060000_contact_enquiries.sql']);
   for(const file of files) {
     await sql(`begin;set local role postgres;${readFileSync('supabase/migrations/'+file,'utf8')}commit;`);
     console.log('Fresh isolated migration applied: '+file);
   }
   // Catalog seed is designed to be repeatable; DDL migrations run once/in order.
   await sql(`begin;set local role postgres;${readFileSync('supabase/migrations/20261021010100_seed_internal_roles.sql','utf8')}commit;`);
-  assert.equal((await sql('select count(*) from public.role_permissions;')).trim(),'52');
+  assert.equal((await sql('select count(*) from public.role_permissions;')).trim(),'73');
   phase='fresh isolated pgTAP authorization tests';
   let passed=0;
   for(const file of readdirSync('supabase/tests').filter(f=>f.endsWith('.sql')).sort()) {
@@ -64,7 +64,7 @@ try {
     const count=(tap.match(/^ok [0-9]+\b/gm)||[]).length;
     assert.ok(count>0 && !/^not ok\b/m.test(tap) && !/Looks like you/i.test(tap));passed+=count;
   }
-  assert.equal(passed,290);console.log('Fresh isolated pgTAP: '+passed+'/'+passed+' passed; repeat catalog seed retains 52 mappings.');
+  assert.equal(passed,556);console.log('Fresh isolated pgTAP: '+passed+'/'+passed+' passed; repeat catalog seed retains 73 mappings.');
   phase='fresh isolated canonical owner bootstrap tests';
   for(const file of ['test-owner-bootstrap.mjs','test-auth-flow-concurrency.mjs']) {
     const result=await run(process.execPath,['scripts/'+file],{env,timeout:120000,maxBuffer:200000});

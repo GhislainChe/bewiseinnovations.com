@@ -1,0 +1,3 @@
+"use client";
+export class ProductApiError extends Error{}
+export async function productApi(query:string,operation?:string,input?:unknown){const r=await fetch('/internal/products-api'+query,{method:operation?'POST':'GET',headers:operation?{'Content-Type':'application/json'}:undefined,body:operation?JSON.stringify({operation,input}):undefined,mode:'cors',credentials:'same-origin',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',signal:AbortSignal.timeout(25000)});if(!r.ok)throw new ProductApiError(r.status===409?'Product changed. Reload before continuing.':'Operation unavailable. Check permissions and fields; reload before retrying.');return r.json();}

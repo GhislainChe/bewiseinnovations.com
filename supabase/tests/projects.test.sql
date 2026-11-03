@@ -10,8 +10,8 @@ insert into public.services(id,slug,title,description,status,accepting_requests)
 insert into business_private.project_requests(id,service_id,service_snapshot,full_name,email,whatsapp,requirements,status,consent_version,idempotency_hash,payload_hash) values('4b200000-0000-4000-8000-000000000001','4b100000-0000-4000-8000-000000000001','{"title":"Test"}','Private client','private-client@example.invalid','+237600000000','Private enquiry payload','approved','test',decode(repeat('4b',32),'hex'),decode(repeat('4c',32),'hex'));
 create function pg_temp.claims(n integer,assurance text default 'aal2') returns text language sql as $$select json_build_object('sub','4b000000-0000-4000-8000-00000000000'||n,'role','authenticated','aal',assurance,'session_id','4b000000-0000-4000-8000-00000000000'||n,'exp',extract(epoch from now()+interval '1 hour')::bigint)::text$$;
 create temp table targets(label text,id uuid);grant all on targets to authenticated;
-select extensions.is((select count(*) from public.permissions),27::bigint,'four explicit project permissions');
-select extensions.is((select count(*) from public.role_permissions),52::bigint,'eleven scoped project/overview grants');
+select extensions.is((select count(*) from public.permissions),37::bigint,'reviewed current permission catalog');
+select extensions.is((select count(*) from public.role_permissions),73::bigint,'reviewed current role mappings');
 select extensions.ok(not has_function_privilege('anon','public.company_project_overview()','execute'),'anonymous overview denied');
 select extensions.ok(not has_function_privilege('service_role','public.prepare_project_progress(uuid,integer,uuid,boolean)','execute'),'privileged ingress cannot queue progress');
 select extensions.ok(not has_table_privilege('authenticated','business_private.projects','INSERT,UPDATE,DELETE'),'direct project writes denied');

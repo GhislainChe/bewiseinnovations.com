@@ -1,0 +1,18 @@
+// Disposable LOCAL Auth fixtures. No remote URL, output of credentials, or email delivery.
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {randomUUID,randomBytes,createHmac} from 'node:crypto';
+import {createClient,type SupabaseClient} from '@supabase/supabase-js';
+import {createServerClient} from '@supabase/ssr';
+import {localSql} from './local-database.mjs';
+export function localAuthFixtures(){const env:Record<string,string>={};for(const line of readFileSync('.env.integration.local','utf8').split(/\r?\n/)){const m=line.match(/^([A-Z_]+)=(.*)$/);if(m)env[m[1]]=m[2].trim().replace(/^(["'])(.*)\1$/,'$2');}
+ assert.equal(env.NEXT_PUBLIC_SUPABASE_URL,'http://127.0.0.1:65421');const api=env.NEXT_PUBLIC_SUPABASE_URL,ids:string[]=[],objects:string[]=[],admin=createClient(api,env.SUPABASE_AUTH_STORE_SECRET_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+ function code(secret:string){const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';let bits=0,value=0;const bytes=[];for(const c of secret.toUpperCase().replace(/=+$/,'')){value=(value<<5)|alphabet.indexOf(c);bits+=5;if(bits>=8){bits-=8;bytes.push((value>>>bits)&255);}value&=(1<<bits)-1;}const counter=Buffer.alloc(8);counter.writeBigUInt64BE(BigInt(Math.floor(Date.now()/30000)));const digest=createHmac('sha1',Buffer.from(bytes)).update(counter).digest(),offset=digest[19]&15;return String((digest.readUInt32BE(offset)&0x7fffffff)%1000000).padStart(6,'0');}
+ return{api,publishableKey:env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,ids,
+  async identity(role:string|null,active=true){if(role&&!['platform_owner','content_community_lead','technical_lead','operations_lead'].includes(role))throw new Error('Unexpected local fixture role');const email=randomUUID()+'@example.invalid',password='Local1!'+randomBytes(24).toString('base64url');const r=await admin.auth.admin.createUser({email,password,email_confirm:true});if(r.error||!r.data.user)throw new Error('Local Auth fixture creation failed');const id=r.data.user.id;ids.push(id);if(role)await localSql(`insert into public.team_profiles(id,full_name,is_active) values('${id}','Synthetic local staff',${active});insert into public.team_role_assignments select '${id}',id from public.roles where code='${role}';`);
+   const cookies=new Map<string,{value:string;options?:{path?:string}}>();const client=createServerClient(api,env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,{cookies:{getAll:()=>[...cookies].map(([name,c])=>({name,value:c.value})),setAll:values=>{for(const c of values)cookies.set(c.name,c);}}});if((await client.auth.signInWithPassword({email,password})).error)throw new Error('Local fixture login failed');return{id,client,cookies};},
+  async mfa(client:SupabaseClient){const e=await client.auth.mfa.enroll({factorType:'totp'});if(e.error||!e.data||(await client.auth.mfa.challengeAndVerify({factorId:e.data.id,code:code(e.data.totp.secret)})).error)throw new Error('Local fixture MFA failed');},
+  async documentFixture(key:string,bytes:Uint8Array){if(!/^[a-f0-9-]{36}\/[a-f0-9-]{36}$/.test(key))throw new Error('Invalid local fixture object');const r=await admin.storage.from('program-application-documents').upload(key,bytes,{contentType:'image/png',upsert:false});if(r.error)throw new Error('Local fixture storage upload failed');objects.push(key);},
+  async cleanup(){if(objects.length){const r=await admin.storage.from('program-application-documents').remove(objects);if(r.error)throw new Error('Local fixture object cleanup requires review');}for(const id of ids){const r=await admin.auth.admin.deleteUser(id);if(r.error)throw new Error('Local fixture cleanup requires review');}}
+ };
+}

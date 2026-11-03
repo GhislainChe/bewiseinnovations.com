@@ -226,3 +226,42 @@ notification intents. Use `/internal`, `/internal/projects` and `/internal/reque
 on localhost:3022. Real email sending remains disabled. Local checks:
 `npm run test:projects` and `npm run test:projects:local`; run active-local database,
 Auth integration and browser suites serially to isolate their disposable fixtures.
+
+Stage 4C.1 adds [Products & Innovation](docs/products-and-innovation.md):
+independent development/publication state, permission-scoped product management,
+public catalog pages and account-free private waitlists with deliberate withdrawal.
+`npm run products:init:local` prepares Meet My Crew as an unpublished local draft;
+`npm run dev:business` serves `/products` and `/internal/products` on localhost:3022.
+Run `npm run test:products` and `npm run test:products:local` for focused checks.
+No mailing, public uploads or hosted changes are enabled.
+
+Stage 4D.1 adds [Inside BE WISE digital magazine](docs/inside-be-wise-magazine.md):
+public published stories/categories, safe structured content, private editorial
+drafts/previews, explicit publication revisions and featured-story selection.
+Use `/inside-be-wise` and `/internal/editorial` on localhost:3022. The initial
+magazine has four approved categories and no invented articles or images.
+`npm run test:magazine` and `npm run test:magazine:local` run focused local checks.
+Uploads, comments, automated messaging and hosted changes remain disabled.
+
+Stage 4E.1 adds [Opportunities & Programs](docs/opportunities-and-programs.md):
+published listings, separate approved intake/windows/forms, account-free applications,
+private Operations review, atomic accepted-place capacity and clean-document access.
+Use `/opportunities` and `/internal/opportunities` on localhost:3022. No real program
+facts are seeded; uploads, payments and messaging remain disabled. Focused checks:
+`npm run test:opportunities` and `npm run test:opportunities:local`.
+
+Stage 4F.1 adds [Events, registration and QR ticketing](docs/events-registration-and-ticketing.md):
+public/private events, independently verified private access, capacity-safe registration
+and waiting lists, private QR tickets, separate physical-payment checks and explicit
+staff attendance confirmation. Use `/events`, `/internal/events` and
+`/internal/events/check-in` on localhost:3022. No real event data is seeded.
+Focused checks: `npm run test:events`, `npm run test:events:local` and
+`npm run test:db:fresh`. Camera hardware acceptance and real delivery remain pending;
+no hosted settings, data or migrations were changed.
+
+Stage 4G.1 adds [Contact & Enquiries](docs/contact-and-enquiries.md): account-free
+contact submissions, Communications/Operations scoped handling, limited revocable
+technical briefs, audit history and manual reply preparation. Use `/contact` and
+`/internal/enquiries` on localhost:3022. No business phone or social account is
+invented, and no real messages are sent. Focused checks:
+`npm run test:enquiries`, `npm run test:enquiries:local`, `npm run test:db:fresh`.

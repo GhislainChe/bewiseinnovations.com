@@ -1,0 +1,7 @@
+import {notFound} from 'next/navigation';
+import {publicMagazine,magazineOrigin} from '@/features/magazine/server';
+import {MagazineDetail,MagazineUnavailable} from '@/features/magazine/public';
+import {articleSlug,shareLinks,type Article} from '@/features/magazine/model';
+export const dynamic='force-dynamic';
+export async function generateMetadata({params}:{params:Promise<{slug:string}>}){try{const a=await publicMagazine().published((await params).slug);if(!a)return{title:'Story unavailable',robots:{index:false,follow:false}};const url=shareLinks(magazineOrigin(),a.slug,a.title).canonical;return{title:a.title+' | Inside BE WISE',description:a.summary,alternates:{canonical:url},openGraph:{title:a.title,description:a.summary,url,type:'article',publishedTime:a.publishedAt,modifiedTime:a.updatedAt}};}catch{return{title:'Inside BE WISE',robots:{index:false,follow:false}};}}
+export default async function Page({params}:{params:Promise<{slug:string}>}){const value=(await params).slug;try{articleSlug(value);}catch{notFound();}let article:Article|null,related:Article[],origin:string;try{const r=publicMagazine();const found=await r.published(value);article=found;related=found?(await r.catalog(found.category.slug)).filter(a=>a.id!==found.id).slice(0,3):[];origin=magazineOrigin();}catch{return <MagazineUnavailable/>;}if(!article)notFound();return <MagazineDetail article={article} related={related} origin={origin}/>;}

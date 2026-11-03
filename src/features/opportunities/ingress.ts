@@ -1,0 +1,9 @@
+import 'server-only';
+import {createHmac} from 'node:crypto';
+import {createClient} from '@supabase/supabase-js';
+import {assertLocalBusinessRuntime} from '../services/runtime';
+import {parseSubmission} from './model';
+export function programApplicationIngress(){assertLocalBusinessRuntime();const key=process.env.SUPABASE_BUSINESS_INGRESS_SECRET_KEY,secret=process.env.BUSINESS_SUBMISSION_SECRET;if(!key||key.length<32||key.startsWith('sb_publishable_')||!secret||secret.length<32)throw new Error('Application unavailable.');const hash=(purpose:string)=>createHmac('sha256',secret).update('programs-v1:'+purpose).digest('hex');
+ const client=createClient('http://127.0.0.1:65421',key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:async(input,init)=>{const u=new URL(typeof input==='string'?input:input instanceof URL?input.href:input.url);if(u.origin!=='http://127.0.0.1:65421'||u.pathname!=='/rest/v1/rpc/submit_program_application'||u.search||(init?.method??'GET').toUpperCase()!=='POST')throw new Error();return fetch(input,{...init,redirect:'error',signal:AbortSignal.timeout(12000)});}}});
+ return{async submit(input:unknown,idempotencyKey:string){const p=parseSubmission(input);if(!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(idempotencyKey))throw new Error();const reference='BWA-'+hash('receipt:'+idempotencyKey).slice(0,32);const r=await client.rpc('submit_program_application',{p_payload:p,p_reference:reference,p_identity_hex:hash('identity:'+p.opportunityId+':'+p.email),p_idempotency_hex:hash('idempotency:'+idempotencyKey),p_payload_hex:hash('payload:'+JSON.stringify(p)),p_global_hex:hash('global'),p_email_hex:hash('email:'+p.email),p_opportunity_hex:hash('opportunity:'+p.opportunityId)});if(r.error)throw new Error('Application unavailable.');return reference;}};
+}

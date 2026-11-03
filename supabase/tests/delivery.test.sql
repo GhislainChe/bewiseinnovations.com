@@ -13,8 +13,8 @@ create function pg_temp.content() returns jsonb language sql as $$select jsonb_b
 insert into business_private.quotation_revisions(id,quotation_id,revision,state,client_snapshot,request_snapshot,content,pdf_sha256,finalized_at,template_version)values('4d400000-0000-4000-8000-000000000001','4d300000-0000-4000-8000-000000000001',1,'finalized','{"name":"Synthetic Client","email":"delivery@example.invalid","whatsapp":"+237600000000"}','{"reference":"TEST","service":"Synthetic service"}',pg_temp.content(),repeat('a',64),now(),1);
 create function pg_temp.claims(n integer,aal text default 'aal2') returns text language sql as $$select json_build_object('sub','4d000000-0000-4000-8000-00000000000'||n,'role','authenticated','aal',aal,'session_id','4d000000-0000-4000-8000-00000000000'||n,'exp',extract(epoch from now()+interval '1 hour')::bigint)::text$$;
 create temporary table targets(channel text,id uuid);grant all on targets to authenticated;
-select extensions.is((select count(*) from public.permissions),27::bigint,'reviewed current permission catalog');
-select extensions.is((select count(*) from public.role_permissions),52::bigint,'reviewed current role mappings');
+select extensions.is((select count(*) from public.permissions),37::bigint,'reviewed current permission catalog');
+select extensions.is((select count(*) from public.role_permissions),73::bigint,'reviewed current role mappings');
 select extensions.ok(not has_function_privilege('anon','public.prepare_quotation_delivery(uuid,text)','execute'),'anonymous cannot prepare dispatch');
 select extensions.ok(not has_function_privilege('service_role','public.record_quotation_dispatch(uuid,integer,uuid,text,text,boolean)','execute'),'ingress secret cannot record dispatch');
 select extensions.ok(not has_table_privilege('authenticated','business_private.quotation_deliveries','INSERT,UPDATE,DELETE'),'no ordinary direct dispatch mutation');

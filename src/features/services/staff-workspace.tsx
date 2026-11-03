@@ -77,7 +77,7 @@ export function StaffWorkspace({ mode, permissions }: { mode: "services" | "requ
       {has("projects.read") && <Link href="/internal/projects">Projects</Link>}
       {(has("content.read") || has("services.budgets.manage")) && <Link href="/internal/services" aria-current={mode === "services" ? "page" : undefined}>Services</Link>}
       {has("inquiries.read") && <Link href="/internal/requests" aria-current={mode === "requests" ? "page" : undefined}>Client requests</Link>}
-      <Link href="/auth/mfa">MFA</Link><Link href="/auth/sign-out">Sign out</Link></nav></header>
+      {["content.read","products.technical.manage","waitlists.read"].some(has)&&<Link href="/internal/products">Products</Link>}{has("content.read")&&<Link href="/internal/editorial">Editorial</Link>}{["content.read","programs.operations.manage","applications.read"].some(has)&&<Link href="/internal/opportunities">Opportunities</Link>}{["content.read","events.operations.manage"].some(has)&&<Link href="/internal/events">Events</Link>}{has("events.checkin")&&<Link href="/internal/events/check-in">Check-in</Link>}{["enquiries.read","enquiries.assess"].some(has)&&<Link href="/internal/enquiries">Enquiries</Link>}<Link href="/auth/mfa">MFA</Link><Link href="/auth/sign-out">Sign out</Link></nav></header>
     <main className={styles.main}><a href="#workspace" className={styles.skip}>Skip to workspace</a>
       <p className={styles.eyebrow}>OPERATIONS / {mode === "services" ? "CATALOG" : "CLIENT REQUESTS"}</p>
       <h1>{mode === "services" ? "Shape what we offer." : "Every project starts here."}</h1>

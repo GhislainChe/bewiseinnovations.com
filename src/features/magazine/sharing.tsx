@@ -1,0 +1,5 @@
+"use client";
+import {useState} from 'react';
+import {shareLinks} from './model';
+import styles from './magazine.module.css';
+export function Sharing({origin,slug,title}:{origin:string;slug:string;title:string}){const links=shareLinks(origin,slug,title),[message,setMessage]=useState('');return <section aria-label="Share article"><h2>Share this story</h2><nav className={styles.sharing} aria-label="Share this article">{(['whatsapp','facebook','linkedin'] as const).map(k=><a key={k} href={links[k]} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">{k==='whatsapp'?'WhatsApp':k==='facebook'?'Facebook':'LinkedIn'}</a>)}<button type="button" onClick={()=>{if(!navigator.clipboard){setMessage('Copy is unavailable. Select the public URL below.');return;}void navigator.clipboard.writeText(links.canonical).then(()=>setMessage('Article URL copied.')).catch(()=>setMessage('Copy is unavailable. Select the public URL below.'));}}>Copy article URL</button></nav><p className={styles.canonical}>{links.canonical}</p><p role="status" aria-live="polite">{message}</p></section>;}

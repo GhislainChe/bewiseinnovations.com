@@ -6,14 +6,15 @@ import { assertLocalBusinessRuntime } from "./runtime";
 import { parseProjectRequest } from "./validation";
 
 export const SUBMISSION_FAILED = "Unable to accept this request. Check the form or try again later.";
-export async function readBoundedJson(request: Request): Promise<unknown> {
+export async function readBoundedJson(request: Request, maxBytes = 16384): Promise<unknown> {
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > 65536) throw new Error();
   if (!request.headers.get("content-type")?.match(/^application\/json(?:;|$)/i) || !request.body) throw new Error();
   const reader = request.body.getReader(); const chunks: Uint8Array[] = []; let bytes = 0;
   try {
     while (true) {
       const part = await reader.read(); if (part.done) break;
       bytes += part.value.byteLength;
-      if (bytes > 16384) { await reader.cancel(); throw new Error(); }
+      if (bytes > maxBytes) { await reader.cancel(); throw new Error(); }
       chunks.push(part.value);
     }
     return JSON.parse(Buffer.concat(chunks).toString("utf8"));

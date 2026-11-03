@@ -15,8 +15,8 @@ insert into business_private.project_requests(id,service_id,service_snapshot,ful
 create function pg_temp.claims(n integer,aal text default 'aal2') returns text language sql as $$select json_build_object('sub','4b000000-0000-4000-8000-00000000000'||n,'role','authenticated','aal',aal,'session_id','4b000000-0000-4000-8000-00000000000'||n,'exp',extract(epoch from now()+interval '1 hour')::bigint)::text$$;
 create function pg_temp.content() returns jsonb language sql as $$select jsonb_build_object('projectDescription','Prepared project description','scope','Agreed scope','deliverables','Approved deliverables','timeline','Three weeks','paymentTerms','Explicit commercial terms','validUntil',(current_date+30)::text,'notes','','exclusions','Hosting excluded','teamAgreement',true,'currency','XAF','items',jsonb_build_array(jsonb_build_object('description','Implementation','quantity',2,'unitAmount',50000)))$$;
 create temporary table ids(id uuid);grant all on ids to authenticated;
-select extensions.is((select count(*) from public.permissions),27::bigint,'reviewed current permission catalog');
-select extensions.is((select count(*) from public.role_permissions),52::bigint,'reviewed current role mappings');
+select extensions.is((select count(*) from public.permissions),37::bigint,'reviewed current permission catalog');
+select extensions.is((select count(*) from public.role_permissions),73::bigint,'reviewed current role mappings');
 select extensions.ok(not has_function_privilege('anon','public.export_project_request(uuid)','execute'),'anonymous cannot export requests');
 select extensions.ok(not has_function_privilege('service_role','public.finalize_quotation(uuid,integer,text,text)','execute'),'privileged ingress has no finalize grant');
 select extensions.ok(not has_table_privilege('authenticated','business_private.quotation_revisions','INSERT,UPDATE,DELETE'),'ordinary callers have no direct revision mutations');

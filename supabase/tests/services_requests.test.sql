@@ -21,13 +21,13 @@ insert into public.service_budget_options(id,service_id,label,currency,min_minor
 create function pg_temp.payload() returns jsonb language sql as $$select '{"serviceId":"41000000-0000-4000-8000-000000000001","budgetOptionId":"42000000-0000-4000-8000-000000000001","fullName":"Local Visitor","email":"local@example.invalid","whatsapp":"+237600000000","requirements":"A detailed local test requirement.","preferredDeadline":null,"consentVersion":"local-v1"}'::jsonb$$;
 create function pg_temp.claims(n integer,aal text default 'aal2') returns text language sql as $$
  select json_build_object('sub','40000000-0000-4000-8000-00000000000'||n,'role','authenticated','aal',aal,'session_id','40000000-0000-4000-8000-00000000000'||n,'exp',extract(epoch from now()+interval '1 hour')::bigint)::text$$;
-select extensions.is((select count(*) from public.permissions),27::bigint,'reviewed current permission catalog');
-select extensions.is((select count(*) from public.role_permissions),52::bigint,'reviewed current role mappings');
+select extensions.is((select count(*) from public.permissions),37::bigint,'reviewed current permission catalog');
+select extensions.is((select count(*) from public.role_permissions),73::bigint,'reviewed current role mappings');
 select extensions.ok(not has_table_privilege('authenticated','public.services','INSERT,UPDATE,DELETE'),'staff have no direct catalog mutations');
 select extensions.ok(not has_table_privilege('service_role','business_private.project_requests','SELECT,INSERT,UPDATE,DELETE'),'ingress credential has no direct request grant');
 select extensions.ok(not has_function_privilege('anon','public.submit_project_request(jsonb,text,text,text)','execute'),'anonymous cannot invoke privileged ingress');
 select extensions.ok(not has_function_privilege('authenticated','public.submit_project_request(jsonb,text,text,text)','execute'),'staff cannot bypass public ingress');
-select extensions.is((select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='business_private' and c.relkind='r' and c.relrowsecurity),11::bigint,'all business tables enable RLS');
+select extensions.is((select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='business_private' and c.relkind='r' and c.relrowsecurity),39::bigint,'all business tables enable RLS');
 select extensions.ok(not (select public from storage.buckets where id='project-request-documents'),'document bucket is private');
 set local role anon;
 select extensions.is((select count(*) from public.services where slug in ('local-published','local-draft')),1::bigint,'anonymous sees published service only');
